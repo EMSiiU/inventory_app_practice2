@@ -127,7 +127,41 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
 * Desglose por tienda habitual (Supermercado, Tienda local, Mercado, etc.) mostrando histórico global y última tienda.
 
 ---
+## Arquitectura Basada en Funcionalidades (Feature-First)
+lib/
+├── core/                   # Elementos globales e infraestructura de la app
+│   ├── theme/
+│   │   └── app_theme.dart  <-- UBICACIÓN DEL TEMA
+│   ├── database/           # Configuración de SQLite (Tablas, llaves foráneas, índices)
+│   └── utils/              # Constantes, formateadores de fecha, etc.
+│
+├── data/                   # Capa de datos (Lógica de negocio y modelos)
+│   ├── models/             # Modelos (Categoria, Tienda, Producto, Lote_Producto)
+│   └── repositories/       # Controladores para las operaciones CRUD locales
+│
+├── features/               # Módulos divididos por funcionalidad
+│   ├── inventory/          # Pantalla 1 y 3: Listado, Alacena, CRUD de artículos
+│   │   ├── screens/        
+│   │   ├── widgets/        # Tarjetas de artículos, pill badges circulares
+│   │   └── controllers/    # Lógica para cálculo de estado Agotado y reglas FEFO[cite: 5]
+│   │
+│   ├── calendar/           # Pantalla 2: Vista de calendario de caducidades[cite: 5]
+│   │   ├── screens/        # Modal Full-Screen de días específicos[cite: 5]
+│   │   └── widgets/        
+│   │
+│   ├── cart/               # Pantalla 4: Carrito de compras y reposición[cite: 5]
+│   │   ├── screens/        
+│   │   └── controllers/    # Actualización de inventario e Historial_Compras[cite: 5]
+│   │
+│   └── trends/             # Pantalla 5: Trazabilidad y consumo[cite: 5]
+│       └── screens/        
+│
+├── shared/                 # Widgets globales reutilizables en múltiples features
+│   └── widgets/            # Ej. Docked Navigation Bar, Sliver Navigation Bar base[cite: 5]
+│
+└── main.dart               # Punto de entrada de la aplicación
 
+--
 ## 4. Reglas de Negocio Implementadas
 
 1. **Gestión de Caducidad FEFO (First Expired, First Out)**:
