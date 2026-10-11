@@ -17,4 +17,23 @@ class CategoryRepository {
     final List<Map<String, dynamic>> maps = await db.query('Categoria');
     return List.generate(maps.length, (i) => CategoryModel.fromMap(maps[i]));
   }
+
+  Future<int> getOrCreateDefaultCategoryId() async {
+    final Database db = await _dbHelper.database;
+
+    return db.transaction((transaction) async {
+      final categories = await transaction.query(
+        'Categoria',
+        columns: ['id'],
+        orderBy: 'id ASC',
+        limit: 1,
+      );
+
+      if (categories.isNotEmpty) {
+        return categories.first['id'] as int;
+      }
+
+      return transaction.insert('Categoria', {'nombre': 'Despensa'});
+    });
+  }
 }

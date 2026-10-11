@@ -1,30 +1,28 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:inventory_app_practice2/main.dart';
+import 'package:inventory_app_practice2/features/inventory/screens/new_item_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('new item form groups the initial batch fields', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: NewItemScreen()));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Nuevo artículo'), findsOneWidget);
+    expect(find.text('Lote inicial'), findsOneWidget);
+    expect(find.text('Caducidad'), findsOneWidget);
+    expect(find.text('Activar alarmas locales'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('new item form validates its existing required fields', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: NewItemScreen()));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).last, '0');
+    await tester.tap(find.byTooltip('Guardar artículo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ingrese un nombre'), findsOneWidget);
+    expect(find.text('Ingrese una cantidad mayor que 0'), findsOneWidget);
   });
 }

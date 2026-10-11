@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
+import '../models/product_batch_model.dart';
 import '../models/product_model.dart';
 
 class ProductRepository {
@@ -9,6 +10,26 @@ class ProductRepository {
   Future<int> insertProduct(ProductModel product) async {
     final Database db = await _dbHelper.database;
     return await db.insert('Producto', product.toMap());
+  }
+
+  Future<int> insertProductWithInitialBatch({
+    required ProductModel product,
+    required DateTime expirationDate,
+    required int quantity,
+  }) async {
+    final Database db = await _dbHelper.database;
+
+    return db.transaction((transaction) async {
+      final productId = await transaction.insert('Producto', product.toMap());
+      final initialBatch = ProductBatchModel(
+        productId: productId,
+        expirationDate: expirationDate,
+        quantity: quantity,
+      );
+
+      await transaction.insert('Lote_Producto', initialBatch.toMap());
+      return productId;
+    });
   }
 
   // Obtiene los productos calculando su stock total dinámicamente

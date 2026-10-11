@@ -33,14 +33,14 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
 | `color-badge-accent` | `#FF2D55` (Rosa Neón iOS) | Conteo de favoritos y badges en listas |
 | `color-badge-blue` | `#0A84FF` | Conteo de "En Stock" |
 
-### 2.2 Tipografía (Apple SF Pro Display / SF Pro Text)
+### 2.2 Tipografía (Inter)
 
-* **Large Title**: `SF Pro Display`, 34pt, Bold, Tracking: -0.4px (Encabezados de sliver: "Artículos", "Listas", "Alacena")
-* **Title 2**: `SF Pro Display`, 22pt, Bold, Tracking: -0.26px (Secciones en modal / títulos de tarjetas)
-* **Title 3 / Card Headline**: `SF Pro Text`, 17pt, Semibold (Nombre del producto)
-* **Subhead**: `SF Pro Text`, 14pt, Regular / Medium, Color: `#8E8E93` (Categoría, precio, fecha de caducidad)
-* **Footnote / Caption**: `SF Pro Text`, 12pt, Regular, Tracking: +0.2px (UPC, código de lote, badges numéricos)
-* **Button / Action**: `SF Pro Text`, 16pt, Semibold
+* **Large Title**: `Inter`, 34pt, Bold, Tracking: -0.4px (Encabezados de sliver: "Artículos", "Listas", "Alacena")
+* **Title 2**: `Inter`, 22pt, Bold, Tracking: -0.26px (Secciones en modal / títulos de tarjetas)
+* **Title 3 / Card Headline**: `Inter`, 17pt, Semibold (Nombre del producto)
+* **Subhead**: `Inter`, 14pt, Regular / Medium, Color: `#8E8E93` (Categoría, precio, fecha de caducidad)
+* **Footnote / Caption**: `Inter`, 12pt, Regular, Tracking: +0.2px (UPC, código de lote, badges numéricos)
+* **Button / Action**: `Inter`, 16pt, Semibold
 
 ### 2.3 Componentes y Patrones UI
 
