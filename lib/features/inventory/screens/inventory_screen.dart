@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/custom_sliver_app_bar.dart';
-import '../../../shared/widgets/docked_navigation_bar.dart';
 import '../../../shared/widgets/product_card.dart';
+import '../../../data/repositories/product_repository.dart';
+import 'new_item_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({Key? key}) : super(key: key);
@@ -13,72 +14,121 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  int _currentIndex = 0;
+  final ProductRepository _productRepo = ProductRepository();
+  
+  // Future que cargará los datos
+  late Future<List<Map<String, dynamic>>> _productsFuture;
 
-  // Cambia el índice de la barra de navegación
-  void _onTabTapped(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  void _loadProducts() {
     setState(() {
-      _currentIndex = index;
+      _productsFuture = _productRepo.getProductsWithStock();
     });
-    // TODO: Implementar lógica de enrutamiento entre pantallas
+  }
+
+  // Determina el estado del producto basado en reglas de negocio
+  ProductStatus _determineStatus(int stockTotal, int stockSeguridad) {
+    if (stockTotal == 0) return ProductStatus.expired; // Agotado
+    if (stockTotal <= stockSeguridad) return ProductStatus.low; // Stock bajo
+    // TODO: Integrar verificación de fecha para estado 'warning' (Por caducar)
+    return ProductStatus.good; // Óptimo
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // extendBody permite que la lista pase por debajo de la barra de navegación translúcida
-      extendBody: true, 
-      body: CustomScrollView(
-        slivers: [
-          CustomSliverAppBar(
-            title: 'Artículos',
-            cartCount: 3, // Valor estático temporal para pruebas
-            onAddPressed: () {
-              // TODO: Navegar a la pantalla de "Nuevo Artículo" (Tarea de Rebo)
-            },
-            onCartPressed: () {
-              // TODO: Navegar a la pantalla de "Carrito" (Tarea de Rebo)
-            },
+    return CustomScrollView(
+      slivers: [
+        CustomSliverAppBar(
+          title: 'Artículos',
+          cartCount: 0, // TODO: Conectar con controlador de carrito
+          onAddPressed: () async {
+            // Navega al formulario y recarga la lista al regresar
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NewItemScreen()),
+            );
+            _loadProducts();
+          },
+          onCartPressed: () {
+            // TODO: Navegar a pantalla de carrito
+          },
+        ),
+        
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Text(
+              'Todos los artículos', 
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
-          
-          // Sección estática temporal para los filtros o alertas de caducidad
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(
-                'Todos los artículos', 
-                style: Theme.of(context).textTheme.titleMedium,
+        ),
+
+        // Constructor asíncrono para leer SQLite
+        FutureBuilder<List<Map<String, dynamic>>>(
+          future: _productsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SliverToBoxAdapter(
+                child: Center(child: CircularProgressIndicator()),
+              );
+            } else if (snapshot.hasError) {
+              return SliverToBoxAdapter(
+                child: Center(child: Text('Error: ${snapshot.error}')),
+              );
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Text('No hay artículos. Presiona + para agregar.'),
+                  ),
+                ),
+              );
+            }
+
+            final products = snapshot.data!;
+
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final product = products[index];
+                  final stockTotal = product['stock_total'] as int;
+                  final securityStock = product['stock_seguridad'] as int;
+                  final status = _determineStatus(stockTotal, securityStock);
+                  
+                  // Textos dinámicos según el estado
+                  String statusText = 'Stock óptimo';
+                  if (stockTotal == 0) statusText = 'Agotado';
+                  else if (stockTotal <= securityStock) statusText = 'Stock bajo';
+
+                  return ProductCard(
+                    name: product['nombre'],
+                    category: 'Categoría ID: ${product['categoria_id']}', 
+                    store: 'Última tienda ID: ${product['ultima_tienda_id'] ?? 'N/A'}',
+                    statusText: statusText,
+                    quantity: stockTotal,
+                    status: status,
+                    onAddToCart: () {
+                      // TODO: Implementar adición al carrito
+                    },
+                    onConsume: () async {
+                      await _productRepo.consumeProductFefo(product['id'], 1);
+                      _loadProducts(); // Recarga la lista tras consumir
+                    },
+                  );
+                },
+                childCount: products.length,
               ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                // Datos de prueba temporales para visualizar la UI
-                return ProductCard(
-                  name: index == 0 ? 'Leche entera' : 'Tomate triturado',
-                  category: index == 0 ? 'Lácteos' : 'Abarrotes',
-                  store: 'Mercadona',
-                  statusText: index == 0 ? 'Vence en 2 días' : 'Sin lote activo · Agotado',
-                  quantity: index == 0 ? 2 : 0,
-                  status: index == 0 ? ProductStatus.warning : ProductStatus.expired,
-                  onAddToCart: () {
-                    debugPrint('Añadir al carrito presionado');
-                  },
-                  onConsume: () {
-                    debugPrint('Consumir presionado');
-                  },
-                );
-              },
-              childCount: 5,
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: DockedNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-      ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
