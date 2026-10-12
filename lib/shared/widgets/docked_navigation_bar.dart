@@ -35,7 +35,7 @@ class DockedNavigationBar extends StatelessWidget {
             ),
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.square_grid_2x2_fill),
-              label: 'Alacena',
+              label: 'Calendario',
             ),
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.search),
