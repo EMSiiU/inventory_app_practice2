@@ -128,6 +128,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
             );
           },
         ),
+
+        // Espacio vacio para que la barra de navegacion no corte el ultimo elemento
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 80),
+        ),
       ],
     );
   }
