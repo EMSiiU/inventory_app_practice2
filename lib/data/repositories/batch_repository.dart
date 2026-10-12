@@ -13,6 +13,17 @@ class BatchRepository {
     return await db.insert('Lote_Producto', batch.toMap());
   }
 
+  // Obtiene todos los lotes activos (cantidad > 0) de todos los productos
+  Future<List<ProductBatchModel>> getAllActiveBatches() async{
+    final Database db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'Lote_Producto',
+      where: 'cantidad > 0',
+    );
+
+    return List.generate(maps.length, (i) => ProductBatchModel.fromMap(maps[i]));
+  }
+
   // Obtiene todos los lotes activos (cantidad > 0) de un producto
   Future<List<ProductBatchModel>> getActiveBatchesByProductId(int productId) async {
     final Database db = await _dbHelper.database;

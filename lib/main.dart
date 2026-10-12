@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'features/inventory/screens/inventory_screen.dart';
+import 'features/inventory/screens/home_screen.dart';
+// import 'features/inventory/screens/inventory_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
       title: 'Inventory App',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const InventoryScreen(),
+      home: const HomeScreen(),
     );
   }
 }

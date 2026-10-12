@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/docked_navigation_bar.dart';
+import '../../calendar/screens/calendar_screen.dart';
 import 'inventory_screen.dart';
 // import '../../calendar/screens/calendar_screen.dart';
 
@@ -18,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Lista de pantallas para cada pestaña
   final List<Widget> _screens = [
     const InventoryScreen(),
-    //const CalendarScreen(), // Pestaña "Alacena/Calendario"
+    const CalendarScreen(), // Pestaña "Alacena/Calendario"
     const Center(child: Text('Pantalla de Buscar (En desarrollo)')),
     const Center(child: Text('Pantalla de Escáner (En desarrollo)')),
   ];
@@ -33,10 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _screens[_currentIndex],
       bottomNavigationBar: DockedNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
