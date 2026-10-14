@@ -133,7 +133,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           child: Icon(Icons.warning_amber_rounded, color: AppTheme.statusWarning),
                         ),
                         title: Text(
-                          'Producto ID: ${batch.productId}',
+                          batch.productName ?? 'Producto ID: ${batch.productId}',
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(

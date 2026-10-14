@@ -109,7 +109,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
                   return ProductCard(
                     name: product['nombre'],
-                    category: 'Categoría ID: ${product['categoria_id']}', 
+                    category: 'Categoría: ${product['category_name'] ?? 'Sin categoría'}', 
                     store: 'Última tienda ID: ${product['ultima_tienda_id'] ?? 'N/A'}',
                     statusText: statusText,
                     quantity: stockTotal,

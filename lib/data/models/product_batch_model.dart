@@ -5,6 +5,7 @@ class ProductBatchModel {
   final DateTime expirationDate;
   final int quantity;
   final int? storeId;
+  final String? productName;
 
   ProductBatchModel({
     this.id,
@@ -13,6 +14,7 @@ class ProductBatchModel {
     required this.expirationDate,
     required this.quantity,
     this.storeId,
+    this.productName
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +36,7 @@ class ProductBatchModel {
       expirationDate: DateTime.parse(map['fecha_caducidad']),
       quantity: map['cantidad'],
       storeId: map['tienda_id'],
+      productName: map['productName'],
     );
   }
 }
