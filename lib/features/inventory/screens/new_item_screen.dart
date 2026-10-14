@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../data/models/category_model.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/product_repository.dart';
@@ -25,6 +26,47 @@ class _NewItemScreenState extends State<NewItemScreen> {
   bool _alarmActive = true;
   bool _isSaving = false;
 
+  List<CategoryModel> _categories = [];
+  int? _selectedCategoryId;
+  bool _isLoadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  // Busca las categorías. Si no hay, inyecta las opciones por defecto.
+  Future<void> _loadCategories() async{
+    try {
+      var categories = await _categoryRepo.getAllCategories();
+
+      // Si la base de datos está casi vacía, insertamos tus categorías
+      if (categories.isEmpty || categories.length <= 1) {
+        final defaultCategories = ['Lácteos', 'Carnes', 'Embutidos', 'Aderezos', 'Bebidas', 'Abarrotes', 'Frutas y Verduras'];
+
+        for (var name in defaultCategories) {
+          // Validar que no exista una con el mismo nombre
+          if (!categories.any((c) => c.name == name)) {
+            await _categoryRepo.insertCategory(CategoryModel(name: name));
+          }
+        }
+        categories = await _categoryRepo.getAllCategories();
+      }
+
+      if (mounted) {
+        setState(() {
+          _categories = categories;
+          _selectedCategoryId = categories.isNotEmpty?categories.first.id : null;
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error al cargar categorías: $e');
+      if (mounted) setState(() => _isLoadingCategories = false);
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -38,7 +80,10 @@ class _NewItemScreenState extends State<NewItemScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final categoryId = await _categoryRepo.getOrCreateDefaultCategoryId();
+      // final categoryId = await _categoryRepo.getOrCreateDefaultCategoryId();
+      if (_selectedCategoryId == null) return;
+      final categoryId = _selectedCategoryId!;
+
       final newProduct = ProductModel(
         name: _nameController.text.trim(),
         categoryId: categoryId,
@@ -144,6 +189,30 @@ class _NewItemScreenState extends State<NewItemScreen> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 24),
+                      _isLoadingCategories
+                        ? const Center(child: CircularProgressIndicator())
+                        : DropdownButtonFormField<int>(
+                          value: _selectedCategoryId,
+                          decoration: _fieldDecoration('Categoría'),
+                          dropdownColor: AppTheme.surfaceElevated,
+                          items: _categories.map((cat) {
+                            return DropdownMenuItem<int>(
+                              value: cat.id,
+                              child: Text(
+                                cat.name,
+                                style: const TextStyle(color: AppTheme.textPrimary),
+                              )
+                            );
+                          }).toList(), 
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCategoryId = value;
+                            });
+                          },
+                          validator: (value) => 
+                            value == null ? 'Seleccione una categoría' : null,
+                        ),
                       const SizedBox(height: 24),
                       Text(
                         'Lote inicial',
