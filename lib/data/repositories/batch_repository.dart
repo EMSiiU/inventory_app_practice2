@@ -16,10 +16,16 @@ class BatchRepository {
   // Obtiene todos los lotes activos (cantidad > 0) de todos los productos
   Future<List<ProductBatchModel>> getAllActiveBatches() async{
     final Database db = await _dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'Lote_Producto',
-      where: 'cantidad > 0',
-    );
+    // final List<Map<String, dynamic>> maps = await db.query(
+    //   'Lote_Producto',
+    //   where: 'cantidad > 0',
+    // );
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT l.*, p.nombre AS productName 
+      FROM Lote_Producto l
+      INNER JOIN Producto p ON l.producto_id = p.id
+      WHERE l.cantidad > 0
+    ''');
 
     return List.generate(maps.length, (i) => ProductBatchModel.fromMap(maps[i]));
   }
