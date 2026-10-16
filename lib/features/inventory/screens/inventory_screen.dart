@@ -1,9 +1,11 @@
 // Screen de inventario
 
 import 'package:flutter/material.dart';
+import 'package:inventory_app_practice2/core/theme/app_theme.dart';
 import '../../../shared/widgets/custom_sliver_app_bar.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../data/repositories/product_repository.dart';
+import '../../cart/cart_manager.dart';
 import 'new_item_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -115,7 +117,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     quantity: stockTotal,
                     status: status,
                     onAddToCart: () {
-                      // TODO: Implementar adición al carrito
+                      CartManager.instance.addToCart(
+                        product['id'] as int, 
+                        product['nombre'] as String,
+                      );
+                      // Mensaje rapido
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product['nombre']} agregado al carrito'),
+                          duration: const Duration(seconds: 2),
+                          action: SnackBarAction(
+                            label: 'Deshacer', 
+                            textColor: AppTheme.accentBlue,
+                            onPressed: () {
+                              CartManager.instance.removeFromCart(product['id'] as int);
+                            },
+                          ),
+                        )
+                      );
                     },
                     onConsume: () async {
                       await _productRepo.consumeProductFefo(product['id'], 1);
