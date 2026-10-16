@@ -1,11 +1,16 @@
 // Screen de inventario
 
 import 'package:flutter/material.dart';
+
 import 'package:inventory_app_practice2/core/theme/app_theme.dart';
+
 import '../../../shared/widgets/custom_sliver_app_bar.dart';
 import '../../../shared/widgets/product_card.dart';
+
 import '../../../data/repositories/product_repository.dart';
+
 import '../../cart/cart_manager.dart';
+import '../../cart/screens/cart_screen.dart';
 import 'new_item_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -46,8 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return CustomScrollView(
       slivers: [
         CustomSliverAppBar(
-          title: 'Artículos',
-          cartCount: 0, // TODO: Conectar con controlador de carrito
+          title: 'Artículos', 
           onAddPressed: () async {
             // Navega al formulario y recarga la lista al regresar
             await Navigator.push(
@@ -56,8 +60,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
             );
             _loadProducts();
           },
-          onCartPressed: () {
-            // TODO: Navegar a pantalla de carrito
+          onCartPressed: () async{
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartScreen()),
+            );
+
+            if (result == true) {
+              _loadProducts();
+            }
           },
         ),
         

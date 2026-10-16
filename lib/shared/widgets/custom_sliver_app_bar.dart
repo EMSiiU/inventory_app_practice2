@@ -5,17 +5,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:badges/badges.dart' as badges;
 import '../../core/theme/app_theme.dart';
+import '../../features/cart/cart_manager.dart';
 
 class CustomSliverAppBar extends StatelessWidget {
   final String title;
-  final int cartCount;
   final VoidCallback onAddPressed;
   final VoidCallback onCartPressed;
 
   const CustomSliverAppBar({
     Key? key,
     required this.title,
-    this.cartCount = 0,
     required this.onAddPressed,
     required this.onCartPressed,
   }) : super(key: key);
@@ -43,20 +42,26 @@ class CustomSliverAppBar extends StatelessWidget {
         ),
       ),
       actions: [
-        _buildCircularIconButton(
-          icon: badges.Badge(
-            showBadge: cartCount > 0,
-            badgeContent: Text(
-              '$cartCount',
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-            badgeStyle: const badges.BadgeStyle(
-              badgeColor: AppTheme.badgeAccent,
-              padding: EdgeInsets.all(4),
-            ),
-            child: const Icon(CupertinoIcons.cart_fill, color: AppTheme.textPrimary, size: 22),
-          ),
-          onPressed: onCartPressed,
+        ValueListenableBuilder(
+          valueListenable: CartManager.instance.cartItems, 
+          builder: (context, items, child) {
+            final totalCount = items.fold(0, (sum, item) => sum + item.quantity);
+            return _buildCircularIconButton(
+              icon: badges.Badge(
+                showBadge: totalCount > 0,
+                badgeContent: Text(
+                  '$totalCount',
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                badgeStyle: const badges.BadgeStyle(
+                  badgeColor: AppTheme.badgeAccent,
+                  padding: EdgeInsets.all(4),
+                ),
+                child: const Icon(CupertinoIcons.cart_fill, color: AppTheme.textPrimary, size: 22),
+              ),
+              onPressed: onCartPressed,
+            );
+          },
         ),
         const SizedBox(width: 12),
         _buildCircularIconButton(
