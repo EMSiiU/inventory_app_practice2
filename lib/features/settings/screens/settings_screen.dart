@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'manage_categories_screen.dart';
 import 'manage_store_screen.dart';
+import 'manage_products_screen.dart';
 
 import '../../../core/theme/app_theme.dart';
 
@@ -28,12 +29,12 @@ class SettingsScreen extends StatelessWidget {
         children: [
           _buildSettingsTile(
             title: 'Mis Productos', 
-            icon: CupertinoIcons.tag_fill, 
+            icon: CupertinoIcons.cube_box_fill, 
             onTap: () {
-              // Navigator.push(
-              //   context, 
-              //   MaterialPageRoute(builder: (context) => const ManageCategoriesScreen(),)
-              // );
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const ManageProductsScreen(),)
+              );
             },
           ),
           const SizedBox(height: 12),

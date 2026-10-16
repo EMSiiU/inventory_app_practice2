@@ -93,4 +93,16 @@ class ProductRepository {
       }
     }
   }
+
+  // Eliminar producto
+  Future<bool> deleteProduct(int id) async {
+    final Database db = await _dbHelper.database;
+    try {
+      final rowsAffected = await db.delete('Producto', where: 'id = ?', whereArgs: [id]);
+      return rowsAffected > 0;
+    } catch (e) {
+      // Si el borrado es bloqueado por llaves foráneas (ej. Historial), retornamos false
+      return false;
+    }
+  }
 }
