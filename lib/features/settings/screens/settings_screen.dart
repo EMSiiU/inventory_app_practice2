@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
 import 'manage_categories_screen.dart';
+import 'manage_store_screen.dart';
 
 import '../../../core/theme/app_theme.dart';
 
@@ -25,6 +27,17 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildSettingsTile(
+            title: 'Mis Productos', 
+            icon: CupertinoIcons.tag_fill, 
+            onTap: () {
+              // Navigator.push(
+              //   context, 
+              //   MaterialPageRoute(builder: (context) => const ManageCategoriesScreen(),)
+              // );
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildSettingsTile(
             title: 'Mis Categorías', 
             icon: CupertinoIcons.tag_fill, 
             onTap: () {
@@ -39,8 +52,10 @@ class SettingsScreen extends StatelessWidget {
             title: 'Mis Tiendas',
             icon: CupertinoIcons.building_2_fill,
             onTap: () {
-              // TODO: Navegar a gestión de tiendas
-              debugPrint('Ir a tiendas');
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const ManageStoreScreen(),)
+              );
             },
           ),
           const SizedBox(height: 12),
