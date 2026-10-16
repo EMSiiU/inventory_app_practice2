@@ -34,4 +34,16 @@ class StoreRepository {
     }
     return null;
   }
+
+  // Eliminar
+  Future<bool> deleteStore(int id) async {
+    final Database db = await _dbHelper.database;
+    try {
+      final rowsAffected = await db.delete('Tienda', where: 'id = ?', whereArgs: [id]);
+      return rowsAffected > 0;
+    } catch (e) {
+      // Bloqueado por el historial de compras
+      return false;
+    }
+  }
 }

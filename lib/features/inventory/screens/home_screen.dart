@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/docked_navigation_bar.dart';
 import '../../calendar/screens/calendar_screen.dart';
+import '../../settings/screens/settings_screen.dart';
 import 'inventory_screen.dart';
 // import '../../calendar/screens/calendar_screen.dart';
 
@@ -20,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const InventoryScreen(),
     const CalendarScreen(), // Pestaña "Alacena/Calendario"
-    const Center(child: Text('Pantalla de Buscar (En desarrollo)')),
+    const SettingsScreen(),
     const Center(child: Text('Pantalla de Escáner (En desarrollo)')),
   ];
 
