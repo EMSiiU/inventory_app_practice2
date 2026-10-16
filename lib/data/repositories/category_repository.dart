@@ -36,4 +36,16 @@ class CategoryRepository {
       return transaction.insert('Categoria', {'nombre': 'Despensa'});
     });
   }
+
+  // Eliminar
+  Future<bool> deleteCategory(int id) async {
+    final Database db = await _dbHelper.database;
+    try {
+      final rowsAffected = await db.delete('Categoria', where: 'id = ?', whereArgs: [id]);
+      return rowsAffected > 0;
+    } catch (e) {
+      // Si entra aquí, es porque SQLite bloqueó el borrado por el ON DELETE RESTRICT
+      return false; 
+    }
+  }
 }

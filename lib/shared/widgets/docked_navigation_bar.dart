@@ -34,12 +34,12 @@ class DockedNavigationBar extends StatelessWidget {
               label: 'Artículos',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.square_grid_2x2_fill),
+              icon: Icon(CupertinoIcons.calendar),
               label: 'Calendario',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.search),
-              label: 'Buscar',
+              icon: Icon(CupertinoIcons.gear),
+              label: 'Gestión',
             ),
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.barcode_viewfinder),
