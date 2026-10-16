@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'manage_categories_screen.dart';
 
 import '../../../core/theme/app_theme.dart';
 
@@ -27,8 +28,10 @@ class SettingsScreen extends StatelessWidget {
             title: 'Mis Categorías', 
             icon: CupertinoIcons.tag_fill, 
             onTap: () {
-              // TODO: Navegar a CRUD categorias
-              debugPrint('Ir a categorías');
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const ManageCategoriesScreen(),)
+              );
             },
           ),
           const SizedBox(height: 12),

@@ -10,13 +10,13 @@ import '../../features/cart/cart_manager.dart';
 class CustomSliverAppBar extends StatelessWidget {
   final String title;
   final VoidCallback onAddPressed;
-  final VoidCallback onCartPressed;
+  final VoidCallback? onCartPressed;
 
   const CustomSliverAppBar({
     Key? key,
     required this.title,
     required this.onAddPressed,
-    required this.onCartPressed,
+    this.onCartPressed,
   }) : super(key: key);
 
   @override
@@ -42,6 +42,7 @@ class CustomSliverAppBar extends StatelessWidget {
         ),
       ),
       actions: [
+        if(onCartPressed!= null)
         ValueListenableBuilder(
           valueListenable: CartManager.instance.cartItems, 
           builder: (context, items, child) {
@@ -59,7 +60,7 @@ class CustomSliverAppBar extends StatelessWidget {
                 ),
                 child: const Icon(CupertinoIcons.cart_fill, color: AppTheme.textPrimary, size: 22),
               ),
-              onPressed: onCartPressed,
+              onPressed: onCartPressed!,
             );
           },
         ),
