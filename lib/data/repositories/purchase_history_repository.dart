@@ -27,4 +27,21 @@ class PurchaseHistoryRepository {
       );
     });
   }
+
+  // Obtiene el historial completo con nombres de productos y tiendas
+  Future<List<Map<String, dynamic>>> getPurchaseHistory() async {
+    final Database db = await _dbHelper.database;
+    
+    final String query = '''
+      SELECT h.*, 
+              p.nombre as producto_nombre,
+              t.nombre as tienda_nombre
+      FROM Historial_Compras h
+      JOIN Producto p ON h.producto_id = p.id
+      JOIN Tienda t ON h.tienda_id = t.id
+      ORDER BY h.fecha_compra DESC
+    ''';
+    
+    return await db.rawQuery(query);
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'manage_categories_screen.dart';
 import 'manage_store_screen.dart';
 import 'manage_products_screen.dart';
+import 'purchase_history_screen.dart';
 
 import '../../../core/theme/app_theme.dart';
 
@@ -64,8 +65,10 @@ class SettingsScreen extends StatelessWidget {
             title: 'Historial de Compras',
             icon: CupertinoIcons.clock_solid,
             onTap: () {
-              // TODO: Navegar a historial
-              debugPrint('Ir a historial');
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const PurchaseHistoryScreen(),)
+              );
             },
           ),
         ],
