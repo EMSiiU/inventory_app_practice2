@@ -8,6 +8,7 @@ class ProductModel {
   final bool isAlarmActive;
   final DateTime? createdAt;
   final String? categoryName;
+  final String? lastStoreName;
 
   ProductModel({
     this.id,
@@ -18,7 +19,8 @@ class ProductModel {
     this.lastStoreId,
     this.isAlarmActive = true,
     this.createdAt,
-    this.categoryName
+    this.categoryName,
+    this.lastStoreName
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +47,7 @@ class ProductModel {
       isAlarmActive: map['alarma_activa'] == 1,
       createdAt: map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
       categoryName: map['category_name'],
+      lastStoreName: map['last_store_name']
     );
   }
 }

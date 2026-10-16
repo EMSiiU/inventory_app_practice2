@@ -40,9 +40,11 @@ class ProductRepository {
     final String query = '''
       SELECT p.*, 
             c.nombre as category_name,
+            t.nombre as last_store_name,
             COALESCE(SUM(l.cantidad), 0) as stock_total 
       FROM Producto p
       LEFT JOIN Categoria c ON p.categoria_id = c.id
+      LEFT JOIN Tienda t ON p.ultima_tienda_id = t.id
       LEFT JOIN Lote_Producto l ON p.id = l.producto_id AND l.cantidad > 0
       GROUP BY p.id
     ''';

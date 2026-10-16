@@ -2,10 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+
 import '../../../data/models/category_model.dart';
 import '../../../data/models/product_model.dart';
+import '../../../data/models/store_model.dart';
+
+import '../../../data/repositories/store_repository.dart';
 import '../../../data/repositories/category_repository.dart';
 import '../../../data/repositories/product_repository.dart';
+import '../../../data/repositories/purchase_history_repository.dart';
 
 class NewItemScreen extends StatefulWidget {
   const NewItemScreen({super.key});
@@ -18,9 +23,12 @@ class _NewItemScreenState extends State<NewItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
+  final _priceController = TextEditingController();
 
   final _categoryRepo = CategoryRepository();
   final _productRepo = ProductRepository();
+  final _storeRepo = StoreRepository();
+  final _historyRepo = PurchaseHistoryRepository();
 
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 30));
   bool _alarmActive = true;
@@ -30,10 +38,23 @@ class _NewItemScreenState extends State<NewItemScreen> {
   int? _selectedCategoryId;
   bool _isLoadingCategories = true;
 
+  List<StoreModel> _stores = [];
+  int? _selectedStoreId;
+  bool _isLoadingStores = true;
+
   @override
   void initState() {
     super.initState();
     _loadCategories();
+    _loadStores();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    _priceController.dispose();
+    super.dispose();
   }
 
   // Busca las categorías. Si no hay, inyecta las opciones por defecto.
@@ -43,7 +64,15 @@ class _NewItemScreenState extends State<NewItemScreen> {
 
       // Si la base de datos está casi vacía, insertamos tus categorías
       if (categories.isEmpty || categories.length <= 1) {
-        final defaultCategories = ['Lácteos', 'Carnes', 'Embutidos', 'Aderezos', 'Bebidas', 'Abarrotes', 'Frutas y Verduras'];
+        final defaultCategories = [
+          'Lácteos', 
+          'Carnes', 
+          'Embutidos', 
+          'Aderezos', 
+          'Bebidas', 
+          'Abarrotes', 
+          'Frutas y Verduras',
+          'Latas'];
 
         for (var name in defaultCategories) {
           // Validar que no exista una con el mismo nombre
@@ -67,12 +96,41 @@ class _NewItemScreenState extends State<NewItemScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _quantityController.dispose();
-    super.dispose();
+  Future<void> _loadStores() async{
+    try {
+      var stores = await _storeRepo.getAllStores();
+
+      if (stores.isEmpty) {
+        final defaultStores = [
+          'Bodega Aurrera', 
+          'Walmart', 
+          'Soriana', 
+          'Chedraui', 
+          'H-E-B',
+          'Costco', 
+          'Mercado Local',
+          'Tienda 3B'
+        ];
+
+        for (var name in defaultStores) {
+          await _storeRepo.insertStore(StoreModel(name: name));
+        }
+        stores = await _storeRepo.getAllStores();
+      }
+
+      if (mounted) {
+        setState(() {
+          _stores = stores;
+          _selectedStoreId = stores.isNotEmpty ? stores.first.id : null;
+          _isLoadingStores = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error al cargar tiendas: $e');
+      if (mounted) setState(() => _isLoadingStores = false);
+    }
   }
+
 
   Future<void> _saveItem() async {
     if (_isSaving || !(_formKey.currentState?.validate() ?? false)) return;
@@ -87,16 +145,32 @@ class _NewItemScreenState extends State<NewItemScreen> {
       final newProduct = ProductModel(
         name: _nameController.text.trim(),
         categoryId: categoryId,
+        lastStoreId: _selectedStoreId,
         securityStock: 1,
         isAlarmActive: _alarmActive,
         createdAt: DateTime.now(),
       );
 
-      await _productRepo.insertProductWithInitialBatch(
+      // Guardar el producto y su lote inicial
+      final productId = await _productRepo.insertProductWithInitialBatch(
         product: newProduct,
         expirationDate: _selectedDate,
         quantity: int.parse(_quantityController.text.trim()),
       );
+
+      // Guardar la compra en el historial
+      if (_selectedStoreId != null) {
+        final double price = double.tryParse(_priceController.text) ?? 0.0;
+        final int quantity = int.parse(_quantityController.text.trim());
+
+        await _historyRepo.registerPurchaseAndUpdateStore(
+          productId, 
+          _selectedStoreId!, 
+          quantity, 
+          price
+        );
+      }
+
 
       if (mounted) Navigator.pop(context, true);
     } catch (error, stackTrace) {
@@ -213,6 +287,36 @@ class _NewItemScreenState extends State<NewItemScreen> {
                           validator: (value) => 
                             value == null ? 'Seleccione una categoría' : null,
                         ),
+                      const SizedBox(height: 24),
+                      _isLoadingStores
+                        ? const Center(child: CircularProgressIndicator())
+                        : DropdownButtonFormField<int>(
+                          value: _selectedStoreId,
+                          decoration: _fieldDecoration('Tienda'),
+                          dropdownColor: AppTheme.surfaceElevated,
+                          items: _stores.map((store) {
+                            return DropdownMenuItem<int>(
+                              value: store.id,
+                              child: Text(
+                                store.name,
+                                style: const TextStyle(color: AppTheme.textPrimary),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedStoreId = value;
+                            });
+                          },
+                        ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _priceController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: _fieldDecoration('Precio Unitario').copyWith(
+                          prefixIcon: const Icon(Icons.attach_money, color: AppTheme.textSecondary),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       Text(
                         'Lote inicial',
