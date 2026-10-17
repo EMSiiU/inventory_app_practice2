@@ -142,19 +142,33 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     // Mensaje rapido
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          '${product['nombre']} agregado al carrito',
+                        content: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${product['nombre']} agregado al carrito',
+                              ),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.accentBlue,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                              ),
+                              onPressed: () {
+                                CartManager.instance.removeFromCart(
+                                  product['id'] as int,
+                                );
+                              },
+                              child: const Text('Deshacer'),
+                            ),
+                          ],
                         ),
                         duration: const Duration(seconds: 2),
-                        action: SnackBarAction(
-                          label: 'Deshacer',
-                          textColor: AppTheme.accentBlue,
-                          onPressed: () {
-                            CartManager.instance.removeFromCart(
-                              product['id'] as int,
-                            );
-                          },
-                        ),
                       ),
                     );
                   },
