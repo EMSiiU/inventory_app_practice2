@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -32,6 +34,24 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
     });
   }
 
+  Widget _buildProductImage(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return const Icon(
+        CupertinoIcons.checkmark_seal_fill,
+        color: AppTheme.accentBlue,
+      );
+    }
+
+    return Image.file(
+      File(imagePath),
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => const Icon(
+        CupertinoIcons.checkmark_seal_fill,
+        color: AppTheme.accentBlue,
+      ),
+    );
+  }
+
   // Helper para formatear la fecha a algo más legible
   String _formatDate(String isoDate) {
     try {
@@ -53,16 +73,23 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
               // Es una pantalla de solo lectura, mostramos un aviso
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('El historial se actualiza automáticamente al hacer compras.'),
+                  content: Text(
+                    'El historial se actualiza automáticamente al hacer compras.',
+                  ),
                   duration: Duration(seconds: 2),
                 ),
               );
             },
           ),
-          
+
           if (_isLoading)
             const SliverToBoxAdapter(
-              child: Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator())),
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             )
           else if (_history.isEmpty)
             const SliverToBoxAdapter(
@@ -70,86 +97,110 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
                   child: Text(
-                    'Aún no tienes compras registradas.', 
-                    style: TextStyle(color: AppTheme.textPrimary)
+                    'Aún no tienes compras registradas.',
+                    style: TextStyle(color: AppTheme.textPrimary),
                   ),
                 ),
               ),
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final item = _history[index];
-                    return Card(
-                      color: AppTheme.surfaceElevated,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            // Icono o círculo con la fecha
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceCard,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppTheme.accentBlue.withOpacity(0.3)),
-                              ),
-                              child: const Icon(CupertinoIcons.checkmark_seal_fill, color: AppTheme.accentBlue),
-                            ),
-                            const SizedBox(width: 16),
-                            // Detalles
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['producto_nombre'] ?? 'Desconocido',
-                                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Comprado en: ${item['tienda_nombre']}',
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Fecha: ${_formatDate(item['fecha_compra'])}',
-                                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                                  ),
-                                ],
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final item = _history[index];
+                  return Card(
+                    color: AppTheme.surfaceElevated,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          // Icono o círculo con la fecha
+                          Container(
+                            width: 50,
+                            height: 50,
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceCard,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.accentBlue.withOpacity(0.3),
                               ),
                             ),
-                            // Precio y cantidad
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            child: _buildProductImage(
+                              item['producto_imagen_url'] as String?,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Detalles
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '+${item['cantidad']} UNIDADES',
-                                  style: const TextStyle(color: AppTheme.statusGood, fontWeight: FontWeight.bold, fontSize: 14),
+                                  item['producto_nombre'] ?? 'Desconocido',
+                                  style: const TextStyle(
+                                    color: AppTheme.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'C/U a \$${(item['precio_unitario'] as num).toStringAsFixed(2)}',
-                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                                  'Comprado en: ${item['tienda_nombre']}',
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Fecha: ${_formatDate(item['fecha_compra'])}',
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          // Precio y cantidad
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '+${item['cantidad']} UNIDADES',
+                                style: const TextStyle(
+                                  color: AppTheme.statusGood,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'C/U a \$${(item['precio_unitario'] as num).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                  childCount: _history.length,
-                ),
+                    ),
+                  );
+                }, childCount: _history.length),
               ),
             ),
-            
+
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),

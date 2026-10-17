@@ -60,6 +60,7 @@ lib/
 - **Inventario:** lectura de productos y stock calculado desde lotes; muestra nombres de categoría y última tienda. Las tarjetas permiten agregar al carrito o consumir una unidad.
 - **Alta de artículo:** formulario con nombre, categoría, tienda, precio, fecha de caducidad, cantidad inicial, preferencia de alarma e imagen opcional, capturada con la cámara o elegida de la galería. La imagen se copia al almacenamiento privado persistente y su ruta se guarda en el producto. La categoría y la tienda se precargan con opciones predeterminadas cuando sus tablas están vacías (o, para categorías, tienen como máximo un registro).
 - **Imagen en inventario:** las tarjetas muestran la imagen guardada del artículo y conservan el ícono predeterminado cuando no hay imagen o el archivo no está disponible.
+- **Historial de compras:** cada registro muestra la imagen del producto cuando está guardada; si no existe o no se puede cargar, conserva el ícono predeterminado.
 - **Persistencia:** `DatabaseHelper` crea las tablas `Categoria`, `Tienda`, `Producto`, `Lote_Producto` e `Historial_Compras`, con llaves foráneas e índices. El alta del producto y su lote inicial usa una transacción.
 - **Consumo FEFO:** `ProductRepository` descuenta existencias de los lotes con fecha de caducidad más próxima.
 - **Calendario:** muestra marcadores en días con lotes activos por caducar y un modal con el nombre del producto y las unidades restantes.
