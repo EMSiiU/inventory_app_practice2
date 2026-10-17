@@ -60,12 +60,13 @@ lib/
 - **Inventario:** lectura de productos y stock calculado desde lotes; muestra nombres de categoría y última tienda. Las tarjetas permiten agregar al carrito o consumir una unidad.
 - **Alta de artículo:** formulario con nombre, categoría, tienda, precio, fecha de caducidad, cantidad inicial, preferencia de alarma e imagen opcional, capturada con la cámara o elegida de la galería. La imagen se copia al almacenamiento privado persistente y su ruta se guarda en el producto. La categoría y la tienda se precargan con opciones predeterminadas cuando sus tablas están vacías (o, para categorías, tienen como máximo un registro).
 - **Imagen en inventario:** las tarjetas muestran la imagen guardada del artículo y conservan el ícono predeterminado cuando no hay imagen o el archivo no está disponible.
-- **Historial de compras:** cada registro muestra la imagen del producto cuando está guardada; si no existe o no se puede cargar, conserva el ícono predeterminado.
-- **Persistencia:** `DatabaseHelper` crea las tablas `Categoria`, `Tienda`, `Producto`, `Lote_Producto` e `Historial_Compras`, con llaves foráneas e índices. El alta del producto y su lote inicial usa una transacción.
-- **Consumo FEFO:** `ProductRepository` descuenta existencias de los lotes con fecha de caducidad más próxima.
+- **Historial de movimientos:** combina compras y consumos en orden cronológico. Identifica el descuento de stock y señala explícitamente cuando un consumo deja el artículo agotado. Cada evento muestra la imagen del producto cuando está guardada; si no existe o no se puede cargar, conserva el ícono predeterminado.
+- **Persistencia:** `DatabaseHelper` crea las tablas `Categoria`, `Tienda`, `Producto`, `Lote_Producto`, `Historial_Compras` e `Historial_Consumos`, con llaves foráneas e índices. La base migra de la versión 1 a la 2 creando el historial de consumos sin eliminar los datos existentes. El alta del producto y su lote inicial usa una transacción.
+- **Consumo FEFO:** `ProductRepository` descuenta existencias de los lotes con fecha de caducidad más próxima y registra en la misma transacción la cantidad consumida y el stock restante.
 - **Calendario:** muestra marcadores en días con lotes activos por caducar y un modal con el nombre del producto y las unidades restantes.
 - **Carrito y compras:** agregar/quitar productos, editar cantidad, capturar precio y caducidad, seleccionar tienda y registrar lote, historial y última tienda.
-- **Gestión:** creación y eliminación básica de categorías y tiendas; alta/eliminación de productos; consulta del historial de compras.
+- **Historial y compatibilidad:** la tabla de consumos registra movimientos posteriores a la migración; las compras históricas previas se conservan, pero no se reconstruyen consumos pasados.
+- **Gestión:** creación y eliminación básica de categorías y tiendas; alta/eliminación de productos; consulta del historial unificado de movimientos.
 
 ### Parcial o pendiente
 
@@ -77,21 +78,21 @@ lib/
 - No hay edición ni detalle de productos. El stock mínimo se fija en `1`; no se capturan marca, UPC/código de barras ni código de lote en el formulario.
 - El switch de alarma persiste `alarma_activa`, pero no hay programación de notificaciones locales.
 - Escáner de códigos de barras, búsqueda/trazabilidad y tendencias todavía no tienen flujos implementados; la dependencia `mobile_scanner` está declarada, pero no conectada a una pantalla.
-- La base está en versión 1 y no define todavía migraciones para cambios futuros del esquema.
+- La base está en versión 2; futuros cambios del esquema requerirán nuevas migraciones.
 
 ## Verificación realizada
 
 Verificación local ejecutada con Flutter 3.47.1 y Dart 3.13.1:
 
-- **`flutter test`:** las 3 pruebas de widgets pasan, incluidas las acciones de imagen del formulario, validación de campos y placeholder de la tarjeta. Las pruebas del formulario todavía registran errores capturados de inicialización de `sqflite` al cargar categorías y tiendas en el entorno de widgets.
+- **`flutter test`:** las 4 pruebas de widgets pasan, incluidas las acciones de imagen del formulario, validación, placeholder de tarjeta y presentación diferenciada de consumo parcial y agotamiento. Las pruebas del formulario todavía registran errores capturados de inicialización de `sqflite` al cargar categorías y tiendas en el entorno de widgets.
 - **`flutter analyze`:** reporta 17 hallazgos informativos y termina con código de salida distinto de cero; no reporta errores ni advertencias. Son recomendaciones de estilo y uso de APIs obsoletas.
 - **`flutter build apk --debug`:** compilación Android correcta.
-- La captura y selección reales, así como la persistencia en un dispositivo, todavía requieren validación manual en Android/iOS.
+- La consulta combinada de movimientos se ejecutó contra SQLite con datos de compra, consumo parcial y agotamiento; devolvió los tres eventos en orden cronológico.
+- Se hizo hot restart en Android y no aparecieron errores en tiempo de ejecución. La validación visual de realizar consumos reales y consultar el historial en el dispositivo queda pendiente.
 
 ## Próximos pasos sugeridos
 
 1. **Estabilizar pruebas y análisis**
-   - Actualizar las expectativas del formulario para reflejar sus campos actuales.
    - Preparar una base SQLite de prueba o aislar la carga de datos en pruebas de widgets.
    - Resolver los hallazgos de `flutter analyze`, empezando por declarar correctamente las dependencias directas.
 2. **Cerrar integridad de compras**
