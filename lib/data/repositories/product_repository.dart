@@ -48,50 +48,66 @@ class ProductRepository {
       LEFT JOIN Lote_Producto l ON p.id = l.producto_id AND l.cantidad > 0
       GROUP BY p.id
     ''';
-    
+
     return await db.rawQuery(query);
   }
 
-  // Consume unidades de un producto descontando del lote que caduca primero (FEFO)
+  // Consume unidades FEFO y registra el stock resultante en la misma transacción.
   Future<void> consumeProductFefo(int productId, int quantityToConsume) async {
-    final Database db = await _dbHelper.database;
-    
-    // Obtiene lotes activos ordenados por la fecha de caducidad más próxima
-    final List<Map<String, dynamic>> batches = await db.query(
-      'Lote_Producto',
-      where: 'producto_id = ? AND cantidad > 0',
-      whereArgs: [productId],
-      orderBy: 'fecha_caducidad ASC',
-    );
-
-    int remainingToConsume = quantityToConsume;
-
-    for (var batch in batches) {
-      if (remainingToConsume <= 0) break;
-
-      int batchId = batch['id'];
-      int currentQuantity = batch['cantidad'];
-
-      if (currentQuantity <= remainingToConsume) {
-        // El lote se agota por completo
-        await db.update(
-          'Lote_Producto',
-          {'cantidad': 0},
-          where: 'id = ?',
-          whereArgs: [batchId],
-        );
-        remainingToConsume -= currentQuantity;
-      } else {
-        // Se descuenta solo una parte del lote, quedando aún stock disponible
-        await db.update(
-          'Lote_Producto',
-          {'cantidad': currentQuantity - remainingToConsume},
-          where: 'id = ?',
-          whereArgs: [batchId],
-        );
-        remainingToConsume = 0;
-      }
+    if (quantityToConsume <= 0) {
+      throw ArgumentError.value(
+        quantityToConsume,
+        'quantityToConsume',
+        'La cantidad a consumir debe ser mayor que cero.',
+      );
     }
+
+    final Database db = await _dbHelper.database;
+
+    await db.transaction((txn) async {
+      final batches = await txn.query(
+        'Lote_Producto',
+        where: 'producto_id = ? AND cantidad > 0',
+        whereArgs: [productId],
+        orderBy: 'fecha_caducidad ASC',
+      );
+
+      var remainingToConsume = quantityToConsume;
+      var consumedQuantity = 0;
+      var remainingStock = batches.fold<int>(
+        0,
+        (total, batch) => total + (batch['cantidad'] as int),
+      );
+
+      for (final batch in batches) {
+        if (remainingToConsume <= 0) break;
+
+        final batchId = batch['id'] as int;
+        final currentQuantity = batch['cantidad'] as int;
+        final quantityFromBatch = currentQuantity < remainingToConsume
+            ? currentQuantity
+            : remainingToConsume;
+
+        await txn.update(
+          'Lote_Producto',
+          {'cantidad': currentQuantity - quantityFromBatch},
+          where: 'id = ?',
+          whereArgs: [batchId],
+        );
+        remainingToConsume -= quantityFromBatch;
+        consumedQuantity += quantityFromBatch;
+        remainingStock -= quantityFromBatch;
+      }
+
+      if (consumedQuantity == 0) return;
+
+      await txn.insert('Historial_Consumos', {
+        'producto_id': productId,
+        'fecha_consumo': DateTime.now().toIso8601String(),
+        'cantidad': consumedQuantity,
+        'stock_restante': remainingStock,
+      });
+    });
   }
 
   // Eliminar producto

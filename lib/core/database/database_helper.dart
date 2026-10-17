@@ -1,9 +1,10 @@
 import 'dart:async';
+
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  static final versionDB = 1;
+  static final versionDB = 2;
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
@@ -25,6 +26,7 @@ class DatabaseHelper {
       path,
       version: versionDB,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
       onConfigure: _onConfigure,
     );
   }
@@ -32,6 +34,12 @@ class DatabaseHelper {
   // Habilita el soporte para llaves foráneas en SQLite
   Future _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createConsumptionHistoryTable(db);
+    }
   }
 
   // Ejecuta los scripts de creación de tablas e índices
@@ -100,9 +108,32 @@ class DatabaseHelper {
       )
     ''');
 
+    await _createConsumptionHistoryTable(db);
+
     // Creación de Índices
-    await db.execute('CREATE INDEX idx_lote_caducidad ON Lote_Producto(fecha_caducidad, cantidad)');
-    await db.execute('CREATE INDEX idx_producto_categoria ON Producto(categoria_id)');
+    await db.execute(
+      'CREATE INDEX idx_lote_caducidad ON Lote_Producto(fecha_caducidad, cantidad)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_producto_categoria ON Producto(categoria_id)',
+    );
+  }
+
+  Future<void> _createConsumptionHistoryTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE Historial_Consumos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          producto_id INTEGER NOT NULL,
+          fecha_consumo DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+          stock_restante INTEGER NOT NULL CHECK (stock_restante >= 0),
+          FOREIGN KEY (producto_id) REFERENCES Producto(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_historial_consumos_fecha '
+      'ON Historial_Consumos(fecha_consumo)',
+    );
   }
 
   // Cierra la conexión a la base de datos
