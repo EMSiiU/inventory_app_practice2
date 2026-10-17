@@ -1,8 +1,11 @@
 // Tarjeta de producto
 
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+
 import '../../core/theme/app_theme.dart';
 
 enum ProductStatus { good, warning, low, expired }
@@ -14,6 +17,7 @@ class ProductCard extends StatelessWidget {
   final String statusText;
   final int quantity;
   final ProductStatus status;
+  final String? imagePath;
   final VoidCallback onAddToCart;
   final VoidCallback onConsume;
 
@@ -25,6 +29,7 @@ class ProductCard extends StatelessWidget {
     required this.statusText,
     required this.quantity,
     required this.status,
+    this.imagePath,
     required this.onAddToCart,
     required this.onConsume,
   }) : super(key: key);
@@ -45,6 +50,7 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
+    final imagePath = this.imagePath;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -96,7 +102,17 @@ class ProductCard extends StatelessWidget {
                   color: AppTheme.surfaceElevated,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(CupertinoIcons.cube_box, color: AppTheme.textSecondary),
+                clipBehavior: Clip.antiAlias,
+                child: imagePath == null || imagePath.isEmpty
+                    ? _placeholderIcon()
+                    : Image.file(
+                        File(imagePath),
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _placeholderIcon(),
+                      ),
               ),
               const SizedBox(width: 16),
               // Textos descriptivos
@@ -104,10 +120,7 @@ class ProductCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    Text(name, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 2),
                     Text(
                       '$category · $store',
@@ -162,5 +175,9 @@ class ProductCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _placeholderIcon() {
+    return const Icon(CupertinoIcons.cube_box, color: AppTheme.textSecondary);
   }
 }

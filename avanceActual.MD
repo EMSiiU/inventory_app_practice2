@@ -58,7 +58,8 @@ lib/
 
 - **Tema y componentes:** tema oscuro con tipografía Inter, barra inferior translúcida, encabezados con efecto blur, tarjetas de productos y badge reactivo del carrito.
 - **Inventario:** lectura de productos y stock calculado desde lotes; muestra nombres de categoría y última tienda. Las tarjetas permiten agregar al carrito o consumir una unidad.
-- **Alta de artículo:** formulario con nombre, categoría, tienda, precio, fecha de caducidad, cantidad inicial y preferencia de alarma. La categoría y la tienda se precargan con opciones predeterminadas cuando sus tablas están vacías (o, para categorías, tienen como máximo un registro).
+- **Alta de artículo:** formulario con nombre, categoría, tienda, precio, fecha de caducidad, cantidad inicial, preferencia de alarma e imagen opcional, capturada con la cámara o elegida de la galería. La imagen se copia al almacenamiento privado persistente y su ruta se guarda en el producto. La categoría y la tienda se precargan con opciones predeterminadas cuando sus tablas están vacías (o, para categorías, tienen como máximo un registro).
+- **Imagen en inventario:** las tarjetas muestran la imagen guardada del artículo y conservan el ícono predeterminado cuando no hay imagen o el archivo no está disponible.
 - **Persistencia:** `DatabaseHelper` crea las tablas `Categoria`, `Tienda`, `Producto`, `Lote_Producto` e `Historial_Compras`, con llaves foráneas e índices. El alta del producto y su lote inicial usa una transacción.
 - **Consumo FEFO:** `ProductRepository` descuenta existencias de los lotes con fecha de caducidad más próxima.
 - **Calendario:** muestra marcadores en días con lotes activos por caducar y un modal con el nombre del producto y las unidades restantes.
@@ -81,9 +82,10 @@ lib/
 
 Verificación local ejecutada con Flutter 3.47.1 y Dart 3.13.1:
 
-- **`flutter test`:** 1 prueba pasó y 1 falló. La prueba `new item form groups the initial batch fields` espera dos `TextFormField`, pero el formulario actual crea tres (nombre, precio y cantidad). La prueba de validación de campos obligatorios pasó. Ambas pruebas también imprimen errores de inicialización de `sqflite` al intentar cargar categorías y tiendas en el entorno de widget test.
-- **`flutter analyze`:** reporta 18 hallazgos de nivel informativo y termina con código de salida distinto de cero; no reportó errores ni advertencias. Incluye una dependencia `path` importada pero no declarada directamente, APIs Flutter obsoletas y recomendaciones de estilo.
-- No se ejecutó en esta revisión una compilación de plataforma ni una prueba en dispositivo físico; por tanto, no se confirma aquí el funcionamiento en Android/iOS real.
+- **`flutter test`:** las 3 pruebas de widgets pasan, incluidas las acciones de imagen del formulario, validación de campos y placeholder de la tarjeta. Las pruebas del formulario todavía registran errores capturados de inicialización de `sqflite` al cargar categorías y tiendas en el entorno de widgets.
+- **`flutter analyze`:** reporta 17 hallazgos informativos y termina con código de salida distinto de cero; no reporta errores ni advertencias. Son recomendaciones de estilo y uso de APIs obsoletas.
+- **`flutter build apk --debug`:** compilación Android correcta.
+- La captura y selección reales, así como la persistencia en un dispositivo, todavía requieren validación manual en Android/iOS.
 
 ## Próximos pasos sugeridos
 
