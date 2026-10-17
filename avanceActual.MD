@@ -1,13 +1,13 @@
 # Avance actual de Inventory App
 
-**Fecha de actualización:** 16 de octubre de 2026
+**Fecha de actualización:** 17 de octubre de 2026
 **Base de referencia:** arquitectura y requerimientos de [`diseñoApp.md`](./diseñoApp.md).
 
 ## Resumen
 
 La aplicación Flutter ya tiene navegación principal activa y flujos conectados para inventario, registro de artículos, calendario de caducidades, carrito de reposición y gestión de productos, categorías, tiendas, historial de movimientos y estadísticas en Gestión. SQLite conserva los datos localmente; el inventario calcula existencias desde los lotes y permite consumirlas en orden FEFO.
 
-El avance es funcional, pero parcial frente al diseño: el escáner sigue siendo un marcador de posición y faltan edición/detalle de productos.
+El avance es funcional, pero parcial frente al diseño: faltan edición/detalle de productos. La guía de usuario está en [`README.md`](./README.md) y la explicación técnica detallada en [`guia.md`](./guia.md).
 
 ## Arquitectura actual
 
@@ -54,14 +54,14 @@ lib/
 └── main.dart
 ```
 
-`main.dart` inicia `HomeScreen`, que ofrece tres pestañas: Artículos, Calendario y Gestión. La pestaña de Escáner se retiró de la navegación mientras se define el flujo para capturar o seleccionar fotos durante el alta de un artículo. La búsqueda del inventario ya está implementada; la trazabilidad extendida sigue pendiente.
+`main.dart` inicia `HomeScreen`, que ofrece tres pestañas: Artículos, Calendario y Gestión. El alta permite capturar o elegir una foto; la búsqueda y los filtros del inventario están implementados, mientras la trazabilidad extendida sigue pendiente.
 
 ## Estado por funcionalidad
 
 ### Implementado
 
 - **Tema y componentes:** tema oscuro con tipografía Inter, barra inferior translúcida, encabezados con efecto blur, tarjetas de productos y badge reactivo del carrito.
-- **Inventario:** lectura de productos y stock calculado desde lotes; muestra nombres de categoría y última tienda. Las tarjetas permiten agregar al carrito o consumir una unidad.
+- **Inventario:** lectura de productos y stock calculado desde lotes; muestra nombres de categoría y última tienda. Las tarjetas permiten agregar al carrito o consumir una unidad. La búsqueda por nombre, los filtros por categoría/estado y tres órdenes están conectados.
 - **Alta de artículo:** formulario con nombre, categoría, tienda, precio, fecha de caducidad, cantidad inicial, preferencia de alarma e imagen opcional, capturada con la cámara o elegida de la galería. La imagen se copia al almacenamiento privado persistente y su ruta se guarda en el producto. La categoría y la tienda se precargan con opciones predeterminadas cuando sus tablas están vacías (o, para categorías, tienen como máximo un registro).
 - **Imagen en inventario:** las tarjetas muestran la imagen guardada del artículo y conservan el ícono predeterminado cuando no hay imagen o el archivo no está disponible.
 - **Historial de movimientos:** combina compras y consumos en orden cronológico. Identifica el descuento de stock y señala explícitamente cuando un consumo deja el artículo agotado. Cada evento muestra la imagen del producto cuando está guardada; si no existe o no se puede cargar, conserva el ícono predeterminado.
@@ -71,7 +71,7 @@ lib/
 - **Carrito y compras:** agregar/quitar productos, editar cantidad, capturar precio y caducidad, seleccionar tienda y registrar lote, historial y última tienda.
 - **Historial y compatibilidad:** la tabla de consumos registra movimientos posteriores a la migración; las compras históricas previas se conservan, pero no se reconstruyen consumos pasados.
 - **Gestión:** creación y eliminación básica de categorías y tiendas; alta/eliminación de productos; consulta del historial unificado de movimientos.
-- **Alarmas locales:** cada lote activo con `alarma_activa` genera una notificación a las 9:00 a. m. (hora local) del mismo día de caducidad. Se solicitan permisos al crear artículos o registrar compras, se cancelan alertas de lotes agotados/eliminados y se reconcilian los avisos pendientes al iniciar. Si se deniega el permiso o ya pasó la hora de ese día, se conserva el artículo/la compra y se informa al usuario.
+- **Alarmas locales:** en Android/iOS, cada lote activo de un producto con `alarma_activa` genera una notificación a las 9:00 a. m. (hora local) del mismo día de caducidad. Se solicitan permisos al crear artículos o registrar compras, se cancelan alertas de lotes agotados/eliminados y se reconcilian los avisos pendientes al iniciar. Si se deniega el permiso o ya pasó la hora de ese día, se conserva el artículo/la compra y se informa al usuario. Android usa alarmas inexactas; la notificación de prueba se expone solo en compilaciones debug. Probada en un dispositivo Android conectado.
 - **Estadísticas en Gestión:** tarjetas para unidades consumidas por día en los últimos siete días, compras históricas agrupadas por nombre de tienda (unidades e importe con precios disponibles) y proporción de consumos agotados frente a parciales. Hay estados vacíos y espacio desplazable al final para evitar que la navegación inferior tape la gráfica.
 - **Esquema de tiendas:** las estadísticas agrupan por el nombre existente de la tienda; no existe una clasificación de tiendas por tipo.
 
@@ -82,8 +82,7 @@ lib/
 - El carrito vive en memoria y no persiste al cerrar la aplicación. El checkout procesa artículos uno por uno: el lote y el historial se guardan en operaciones separadas y no hay una transacción única para toda la compra.
 - La cantidad y el precio del checkout no tienen validación de formulario; valores que no se puedan convertir se sustituyen por valores predeterminados.
 - La creación de artículo guarda producto y lote en una transacción, pero la escritura posterior del historial de compra queda fuera de ella.
-- No hay edición ni detalle de productos. El stock mínimo se fija en `1`; no se capturan marca, UPC/código de barras ni código de lote en el formulario.
-- El escáner de códigos de barras y la búsqueda/trazabilidad todavía no tienen flujos implementados; la dependencia `mobile_scanner` está declarada, pero no conectada a una pantalla.
+- No hay edición ni detalle de productos. El stock mínimo se fija en `1`; no se capturan marca ni código de lote en el formulario.
 - La base está en versión 4. La migración elimina la columna experimental `Tienda.tipo` sin modificar las tiendas, compras ni consumos existentes. La base del dispositivo se respaldó antes de ejecutar esa migración.
 
 ## Verificación realizada
@@ -91,8 +90,9 @@ lib/
 Verificación local ejecutada con Flutter 3.47.1 y Dart 3.13.1:
 
 - **Análisis focalizado:** `dart analyze` sobre los archivos de esta funcionalidad y su prueba, sin problemas.
-- **Pruebas:** 12 pruebas de widgets y de cálculo de fecha de alarma pasan.
-- **Android:** compilación debug del APK correcta. La verificación en dispositivo físico/emulador queda pendiente.
+- **Pruebas:** 12 pruebas de widgets y cálculo de fecha de alarma pasan.
+- **Documentación:** [README.md](./README.md) explica instalación y uso; [guia.md](./guia.md) describe arquitectura, datos y flujos internos.
+- **Android:** compilación debug del APK correcta; la notificación de prueba de un minuto se ejecutó correctamente en un dispositivo Android conectado. La programación del día de caducidad está validada por cálculo y compilación; su entrega de día completo depende de la hora, permisos y políticas del dispositivo.
 - **Migración de base de datos:** `PRAGMA integrity_check` devolvió `ok`, `PRAGMA foreign_key_check` no detectó problemas y los conteos de filas de todas las tablas se conservaron tras retirar `Tienda.tipo`.
 - La consulta combinada de movimientos se ejecutó contra SQLite con datos de compra, consumo parcial y agotamiento; devolvió los tres eventos en orden cronológico.
 - La validación visual automatizada de las gráficas en distintas dimensiones de pantalla queda pendiente.
@@ -110,10 +110,10 @@ Verificación local ejecutada con Flutter 3.47.1 y Dart 3.13.1:
    - Añadir detalle y edición del producto, stock mínimo configurable y los campos de marca, UPC y código de lote contemplados en el diseño.
    - Conectar lotes y fechas de caducidad al estado de las tarjetas y agregar las acciones de consumo/reposición al calendario.
 4. **Completar secciones previstas**
-   - Implementar y conectar el escáner y búsqueda/trazabilidad.
+   - Ampliar la trazabilidad y la consulta del historial.
 5. **Validar persistencia y plataformas**
    - Agregar pruebas de repositorios para transacciones, stock, FEFO, compras y restricciones de borrado.
-   - Ejecutar compilación y pruebas en emulador/dispositivo para las plataformas objetivo.
+   - Ejecutar compilación y pruebas en iOS y ampliar pruebas en Android; la notificación de prueba de un minuto ya se validó en Android.
    - Incorporar migraciones antes de evolucionar el esquema de base de datos.
 
 ## Criterio de avance

@@ -6,13 +6,15 @@ Este documento contiene el contexto completo, especificaciones de diseño visual
 
 ## 1. Resumen Ejecutivo del Producto
 
-Aplicación móvil orientada a la **gestión de inventario doméstico y alacena inteligente** para iOS/Android (desarrollada con Flutter). Resuelve el problema del desperdicio de comida y falta de provisiones aplicando gestión de caducidad estricta **FEFO (First Expired, First Out)**, trazabilidad de tiendas habituales y generación reactiva de listas de compra con sistema de badges interactivos.
+Aplicación Flutter para Android/iOS orientada a la **gestión de inventario doméstico y alacena inteligente**. Resuelve el problema del desperdicio de comida y la falta de provisiones aplicando gestión de caducidad **FEFO (First Expired, First Out)**, historial de compras y consumos, y generación reactiva de una lista de reposición.
+
+> Este documento reúne la dirección de diseño y el estado funcional vigente. Los detalles de lo que aún no está implementado se indican en cada sección. La guía técnica basada en el código está en [`guia.md`](./guia.md).
 
 ---
 
 ## 2. Sistema de Diseño (iOS Native Dark Mode System Tokens)
 
-Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`, `trends-dark.png`, `item-scanner-dark.png`, `item-dark.png`). La estética replica rigurosamente el estilo nativo de Apple (iOS 17/18 Human Interface Guidelines).
+Inspirado en capturas de referencia de listas, artículos e indicadores. La estética replica el estilo nativo de Apple (iOS 17/18 Human Interface Guidelines).
 
 ### 2.1 Paleta de Color Tokens (Dark Theme OLED)
 
@@ -56,11 +58,11 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
      - ⚪ **Agotado**: Badge en 0 con color atenuado.
      - 🟢 **En orden**: Estatus normal con conteo positivo.
 4. **Docked Navigation Bar (Tab Bar Flotante/Nativa)**:
-   - Contenedor con efecto vidrio líquido (`blur`) en la parte inferior con 4 pestañas:
+   - La navegación implementada usa una barra translúcida con 3 pestañas:
      - 📦 **Artículos** (`CupertinoIcons.square_stack_3d_up_fill`)
-     - 📑 **Listas / Alacena** (`CupertinoIcons.square_grid_2x2_fill`)
-     - 🔍 **Buscar / Trazabilidad** (`CupertinoIcons.search`)
-     - 📷 **Escáner** (`CupertinoIcons.barcode_viewfinder`)
+     - 📅 **Calendario** (`CupertinoIcons.calendar`)
+     - ⚙️ **Gestión** (`CupertinoIcons.gear`)
+   - El acceso al carrito y al registro de artículos está en los controles superiores de Artículos. La búsqueda está integrada en esa pantalla.
 
 ---
 
@@ -70,16 +72,16 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
 * **Estructura**: `CustomScrollView` usando `SliverAppBar` expandible y `SliverList` / `SliverAnimatedList`.
 * **Header / AppBar**:
   - Título grande "Artículos".
-  - Botón superior izquierdo: modo vista / filtros rápidos.
-  - Botón superior derecho: Icono de Carrito de Compras (`CupertinoIcons.cart_fill`) envuelto con paquete `badges: ^3.1.2` (`badges.Badge(badgeContent: Text('$cartCount'))`).
-  - Botón superior derecho: Botón circular de añadir artículo (`+`).
-* **Sección de Alertas Rápidas**:
-  - Filtro horizontal o tarjetas destacadas para artículos **próximos a caducar** y **agotados / por agotarse**.
+  - Accesos superiores para el carrito y para registrar un artículo.
+* **Búsqueda y filtros implementados**:
+  - Búsqueda por nombre sin distinguir mayúsculas y con espacios externos ignorados.
+  - Filtros por categoría y estado: todos, en stock, stock bajo o agotados.
+  - Orden por nombre A-Z, stock menor a mayor o stock mayor a menor.
 * **Ítem de Lista de Artículo**:
   - Miniatura o imagen del producto (redondeada, radio 12pt).
   - Nombre del producto y categoría (`SF Pro Text 16pt Semibold`).
-  - Lote próximo a caducar (días restantes o fecha) y última tienda vinculada.
-  - Indicador de estado por color (Rojo: Caducado/Agotado, Naranja: Por caducar, Verde: Óptimo).
+  - Muestra la categoría, última tienda y existencias agregadas de lotes activos.
+  - El estado de tarjeta usa existencias y stock de seguridad; todavía no clasifica visualmente por próxima caducidad.
   - Conteo de existencias en píldora circular (`2 UN`).
   - Botón de acción rápida: **"Añadir al Carrito"** (`+🛒`), que incrementa reactivamente el badge del header.
 
@@ -91,24 +93,20 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
   - **Días con alertas de caducidad**:
     - Marcadores inferiores múltiples (puntos / dots) debajo del número del día (`eventLoader` que devuelve la lista de lotes/artículos que caducan esa fecha).
     - Cantidad de puntos = cantidad de alertas en ese día.
-    - Color del punto codificado por criticidad (Rojo para caducados, naranja para ≤3 días).
-* **Interacción Modal Full-Screen**:
-  - Al hacer tap en un día específico: abrir un modal a pantalla completa (`showCupertinoModalPopup` o `Navigator.push` con transición fullscreen modal estilo iOS).
-  - **Contenido del Modal**:
-    - Botón de cierre ("Cerrar" o cruz translúcida) y fecha seleccionada en grande.
-    - Listado completo de artículos que vencen dicho día: imagen, nombre, categoría, lote, stock disponible y tienda donde se compró.
-    - Botón de acción por ítem: "Marcar como consumido" (descontar stock FEFO) o "Añadir a lista de compras".
+    - Los lotes activos se marcan actualmente con puntos naranjas; el color no codifica criticidad individual.
+* **Interacción implementada**:
+  - Al seleccionar un día se abre un panel inferior desplazable con los lotes y cantidades activas que caducan ese día.
+  - La vista actual no ofrece acciones de consumo/reabastecimiento ni detalle de imagen, categoría o tienda en el panel.
+* **Mejora futura**: acciones rápidas para consumir o agregar a la lista de reposición.
 
 ---
 
 ### Pantalla 3: Registro y Edición de Artículo (CRUD con Integridad)
-* **Formulario Agrupado Estilo iOS**:
-  - Selector de Categoría (Desplegable / `CupertinoPicker` / Pills horizontales con iconos: Lácteos, Carnes, Despensa, Abarrotes, Limpieza, etc.).
-  - Nombre del producto, marca, código de barras/UPC (con botón para invocar lector).
-  - Stock mínimo de seguridad (umbral para lanzar alarma de "Por agotarse").
-  - Switch para "Activar alarmas locales de caducidad" (`lanzar_alarma_local: true`).
-* **Sub-sección de Lotes (`LoteProducto`)**:
-  - Registro del lote inicial: Número de lote, fecha de caducidad (DatePicker iOS), cantidad de unidades y selección de la Tienda de compra.
+* **Formulario implementado**:
+  - Nombre, categoría, tienda, precio unitario, cantidad y caducidad para el lote inicial; foto opcional tomada con cámara o seleccionada de la galería.
+  - Switch `alarma_activa` para habilitar recordatorios locales de caducidad.
+  - El stock mínimo se fija actualmente en 1. Marca y código de lote no se capturan en este formulario.
+* **Mejora futura**: edición de productos y stock mínimo configurable.
 
 ---
 
@@ -129,11 +127,11 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
   - Las compras muestran tienda y precio unitario.
   - Los consumos muestran las unidades descontadas y las existencias resultantes.
   - Si el stock resultante es cero, identificar el movimiento como producto agotado; si queda stock, identificarlo como consumo parcial.
-* **Persistencia**:
+* **Persistencia implementada**:
   - Las compras se consultan desde `Historial_Compras`.
   - Los consumos se consultan desde `Historial_Consumos`.
   - Combinar ambas fuentes sin perder el tipo del movimiento y ordenarlas por fecha descendente.
-  - Los movimientos de consumo se registran junto con el descuento de lotes en una misma transacción.
+  - Los movimientos de consumo se registran junto con el descuento de lotes en una misma transacción. Compra e historial de compra se escriben en una transacción; la creación del lote del checkout es una operación separada.
 
 ---
 
@@ -148,41 +146,24 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
 * Las tiendas se identifican por su nombre; no se mantiene una clasificación adicional por tipo.
 
 ---
-## Arquitectura Basada en Funcionalidades (Feature-First)
+## Arquitectura implementada (Feature-First)
+```text
 lib/
-├── core/                   # Elementos globales e infraestructura de la app
-│   ├── theme/
-│   │   └── app_theme.dart  <-- UBICACIÓN DEL TEMA
-│   ├── database/           # Configuración de SQLite (Tablas, llaves foráneas, índices)
-│   └── utils/              # Constantes, formateadores de fecha, etc.
-│
-├── data/                   # Capa de datos (Lógica de negocio y modelos)
-│   ├── models/             # Modelos (Categoria, Tienda, Producto, Lote_Producto y movimientos)
-│   └── repositories/       # Controladores para las operaciones CRUD locales
-│
-├── features/               # Módulos divididos por funcionalidad
-│   ├── inventory/          # Pantalla 1 y 3: Listado, Alacena, CRUD de artículos
-│   │   ├── screens/        
-│   │   ├── widgets/        # Tarjetas de artículos, pill badges circulares
-│   │   └── controllers/    # Lógica para cálculo de estado Agotado y reglas FEFO[cite: 5]
-│   │
-│   ├── calendar/           # Pantalla 2: Vista de calendario de caducidades[cite: 5]
-│   │   ├── screens/        # Modal Full-Screen de días específicos[cite: 5]
-│   │   └── widgets/        
-│   │
-│   ├── cart/               # Pantalla 4: Carrito de compras y reposición[cite: 5]
-│   │   ├── screens/        
-│   │   └── controllers/    # Actualización de inventario e Historial_Compras[cite: 5]
-│   ├── settings/           # Gestión y consulta del historial de movimientos
-│   │   └── screens/        
-│   │
-│   └── trends/             # Pantalla 6: Trazabilidad y consumo[cite: 5]
-│       └── screens/        
-│
-├── shared/                 # Widgets globales reutilizables en múltiples features
-│   └── widgets/            # Ej. Docked Navigation Bar, Sliver Navigation Bar base[cite: 5]
-│
-└── main.dart               # Punto de entrada de la aplicación
+├── core/
+│   ├── database/database_helper.dart
+│   ├── notifications/expiration_notification_service.dart
+│   └── theme/app_theme.dart
+├── data/
+│   ├── models/             # Producto, lote, categoría y tienda
+│   └── repositories/       # Consultas y escrituras en SQLite
+├── features/
+│   ├── inventory/screens/  # Inicio, inventario y alta de artículo
+│   ├── calendar/screens/   # Calendario de lotes
+│   ├── cart/               # Estado temporal del carrito y checkout
+│   └── settings/           # Gestión, historial y gráficas
+├── shared/widgets/         # Tarjetas, barras y componentes compartidos
+└── main.dart
+```
 
 --
 ## 4. Reglas de Negocio Implementadas
@@ -200,6 +181,7 @@ lib/
 4. **Alarmas Locales**:
    - El campo booleano `alarma_activa` habilita una notificación local por cada lote activo, programada para las 9:00 a. m. (hora local) del mismo día de caducidad.
    - Las notificaciones se solicitan al guardar un artículo o registrar una compra; se cancelan al agotarse/eliminar el lote y se reconcilian con SQLite al iniciar la aplicación.
+   - Si las 9:00 a. m. ya pasaron en la fecha de caducidad, no se programa una notificación retroactiva. Android usa alarmas inexactas; la pantalla "Probar alarma" es solo debug. La prueba real se ejecutó en un dispositivo Android; iOS necesita verificación en dispositivo Apple.
 5. **Registro de consumo y agotamiento**:
    - Al consumir unidades, descontarlas de los lotes activos en orden FEFO dentro de una transacción.
    - Registrar la cantidad efectivamente descontada y el stock total restante en `Historial_Consumos`, dentro de la misma transacción que actualiza los lotes.
@@ -208,7 +190,7 @@ lib/
 
 ---
 
-## 5. Esquema Relacional de Base de Datos Local (SQLite / Drift / Floor)
+## 5. Esquema Relacional de Base de Datos Local (SQLite mediante sqflite)
 
 ```sql
 -- 1. Tabla de Categorías
@@ -295,6 +277,5 @@ CREATE INDEX idx_historial_consumos_fecha ON Historial_Consumos(fecha_consumo);
   - `CupertinoSlidableAction` / `flutter_slidable: ^3.1.1`: Gestos swipe estilo iOS en cada artículo (descontar rápido, mandar a carrito).
   - `shimmer: ^3.0.0`: Efectos de carga esquelética oscura.
   - `fl_chart: ^0.68.0`: Para la pantalla de tendencias y gráficos de consumo.
-  - `mobile_scanner: ^5.1.1`: Para lectura de código de barras físico.
 
 ---
