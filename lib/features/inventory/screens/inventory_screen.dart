@@ -22,7 +22,7 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   final ProductRepository _productRepo = ProductRepository();
-  
+
   // Future que cargará los datos
   late Future<List<Map<String, dynamic>>> _productsFuture;
 
@@ -51,7 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return CustomScrollView(
       slivers: [
         CustomSliverAppBar(
-          title: 'Artículos', 
+          title: 'Artículos',
           onAddPressed: () async {
             // Navega al formulario y recarga la lista al regresar
             await Navigator.push(
@@ -60,7 +60,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             );
             _loadProducts();
           },
-          onCartPressed: () async{
+          onCartPressed: () async {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CartScreen()),
@@ -71,12 +71,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
             }
           },
         ),
-        
+
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Text(
-              'Todos los artículos', 
+              'Todos los artículos',
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
