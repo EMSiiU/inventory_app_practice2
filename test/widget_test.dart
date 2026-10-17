@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_app_practice2/data/models/store_model.dart';
 import 'package:inventory_app_practice2/features/inventory/screens/new_item_screen.dart';
+import 'package:inventory_app_practice2/features/settings/screens/manage_store_screen.dart';
 import 'package:inventory_app_practice2/features/settings/screens/purchase_history_screen.dart';
 import 'package:inventory_app_practice2/shared/widgets/product_card.dart';
 
@@ -19,6 +20,25 @@ void main() {
     expect(store.location, 'Centro');
     expect(store.icon, 'shop');
     expect(store.toMap().containsKey('tipo'), isFalse);
+  });
+
+  testWidgets('store save failures are shown without an uncaught exception', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: ManageStoreScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(CupertinoIcons.add));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Tienda de prueba');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('No se pudo guardar la tienda:'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('new item form groups the initial batch fields', (tester) async {

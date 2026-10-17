@@ -17,6 +17,7 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
   final StoreRepository _storeRepo = StoreRepository();
   List<StoreModel> _stores = [];
   bool _isLoading = true;
+  Object? _loadError;
 
   @override
   void initState() {
@@ -25,18 +26,57 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
   }
 
   Future<void> _loadStores() async {
-    setState(() => _isLoading = true);
-    final stores = await _storeRepo.getAllStores();
+    if (!mounted) return;
     setState(() {
-      _stores = stores;
-      _isLoading = false;
+      _isLoading = true;
+      _loadError = null;
     });
+
+    try {
+      final stores = await _storeRepo.getAllStores();
+      if (!mounted) return;
+      setState(() {
+        _stores = stores;
+        _isLoading = false;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Error cargando tiendas: $error\n$stackTrace');
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _addStore(String name) async {
-    if (name.trim().isEmpty) return;
-    await _storeRepo.insertStore(StoreModel(name: name.trim()));
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) return;
+
+    try {
+      await _storeRepo.insertStore(StoreModel(name: normalizedName));
+    } catch (error, stackTrace) {
+      debugPrint('Error guardando tienda: $error\n$stackTrace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo guardar la tienda: $error')),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     await _loadStores();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _loadError == null
+              ? 'Tienda agregada con éxito'
+              : 'La tienda se guardó, pero no se pudo actualizar la lista.',
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteStore(StoreModel store) async {
@@ -82,66 +122,12 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
   }
 
   Future<void> _showAddDialog() async {
-    final controller = TextEditingController();
-    await showDialog<void>(
+    final name = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.surfaceCard,
-          title: const Text(
-            'Nueva Tienda',
-            style: TextStyle(color: AppTheme.textPrimary),
-          ),
-          content: TextField(
-            controller: controller,
-            style: const TextStyle(color: AppTheme.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Ej. Walmart, Mercado, Tienda 3B...',
-              hintStyle: const TextStyle(color: AppTheme.textSecondary),
-              filled: true,
-              fillColor: AppTheme.surfaceElevated,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            textCapitalization: TextCapitalization.words,
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: AppTheme.textSecondary),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accentBlue,
-              ),
-              onPressed: () {
-                if (controller.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Ingresa el nombre de la tienda.'),
-                    ),
-                  );
-                  return;
-                }
-                Navigator.pop(context);
-                _addStore(controller.text);
-              },
-              child: const Text(
-                'Guardar',
-                style: TextStyle(color: AppTheme.textPrimary),
-              ),
-            ),
-          ],
-        );
-      },
+      builder: (_) => const _AddStoreDialog(),
     );
-    controller.dispose();
+    if (name == null || !mounted) return;
+    await _addStore(name);
   }
 
   @override
@@ -161,6 +147,27 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
                   child: CircularProgressIndicator(),
+                ),
+              ),
+            )
+          else if (_loadError != null)
+            SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'No se pudieron cargar las tiendas.',
+                        style: TextStyle(color: AppTheme.textPrimary),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _loadStores,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             )
@@ -219,6 +226,77 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
+    );
+  }
+}
+
+class _AddStoreDialog extends StatefulWidget {
+  const _AddStoreDialog();
+
+  @override
+  State<_AddStoreDialog> createState() => _AddStoreDialogState();
+}
+
+class _AddStoreDialogState extends State<_AddStoreDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.surfaceCard,
+      title: const Text(
+        'Nueva Tienda',
+        style: TextStyle(color: AppTheme.textPrimary),
+      ),
+      content: TextField(
+        controller: _controller,
+        style: const TextStyle(color: AppTheme.textPrimary),
+        decoration: InputDecoration(
+          hintText: 'Ej. Walmart, Mercado, Tienda 3B...',
+          hintStyle: const TextStyle(color: AppTheme.textSecondary),
+          filled: true,
+          fillColor: AppTheme.surfaceElevated,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        textCapitalization: TextCapitalization.words,
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: AppTheme.textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentBlue),
+          onPressed: () {
+            if (_controller.text.trim().isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ingresa el nombre de la tienda.'),
+                ),
+              );
+              return;
+            }
+            Navigator.pop(context, _controller.text.trim());
+          },
+          child: const Text(
+            'Guardar',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
+        ),
+      ],
     );
   }
 }
