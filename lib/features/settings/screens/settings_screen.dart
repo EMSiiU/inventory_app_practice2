@@ -62,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildSettingsTile(
-            title: 'Historial de Compras',
+            title: 'Historial de Movimientos',
             icon: CupertinoIcons.clock_solid,
             onTap: () {
               Navigator.push(

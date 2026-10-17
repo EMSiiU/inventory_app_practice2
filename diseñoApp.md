@@ -121,7 +121,23 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
 
 ---
 
-### Pantalla 5: Trazabilidad de Tiendas y Estadísticas ("Tendencias")
+### Pantalla 5: Historial de movimientos de inventario
+* **Acceso**: Desde Gestión, en la opción "Historial de Movimientos".
+* **Contenido**:
+  - Cronología descendente de compras y consumos de productos.
+  - Cada movimiento muestra producto, imagen (o ícono predeterminado), cantidad y fecha.
+  - Las compras muestran tienda y precio unitario.
+  - Los consumos muestran las unidades descontadas y las existencias resultantes.
+  - Si el stock resultante es cero, identificar el movimiento como producto agotado; si queda stock, identificarlo como consumo parcial.
+* **Persistencia**:
+  - Las compras se consultan desde `Historial_Compras`.
+  - Los consumos se consultan desde `Historial_Consumos`.
+  - Combinar ambas fuentes sin perder el tipo del movimiento y ordenarlas por fecha descendente.
+  - Los movimientos de consumo se registran junto con el descuento de lotes en una misma transacción.
+
+---
+
+### Pantalla 6: Trazabilidad de Tiendas y Estadísticas ("Tendencias")
 * Inspirada en `trends-dark.png`.
 * Gráfico de consumo semanal/mensual de artículos.
 * Desglose por tienda habitual (Supermercado, Tienda local, Mercado, etc.) mostrando histórico global y última tienda.
@@ -136,7 +152,7 @@ lib/
 │   └── utils/              # Constantes, formateadores de fecha, etc.
 │
 ├── data/                   # Capa de datos (Lógica de negocio y modelos)
-│   ├── models/             # Modelos (Categoria, Tienda, Producto, Lote_Producto)
+│   ├── models/             # Modelos (Categoria, Tienda, Producto, Lote_Producto y movimientos)
 │   └── repositories/       # Controladores para las operaciones CRUD locales
 │
 ├── features/               # Módulos divididos por funcionalidad
@@ -152,8 +168,10 @@ lib/
 │   ├── cart/               # Pantalla 4: Carrito de compras y reposición[cite: 5]
 │   │   ├── screens/        
 │   │   └── controllers/    # Actualización de inventario e Historial_Compras[cite: 5]
+│   ├── settings/           # Gestión y consulta del historial de movimientos
+│   │   └── screens/        
 │   │
-│   └── trends/             # Pantalla 5: Trazabilidad y consumo[cite: 5]
+│   └── trends/             # Pantalla 6: Trazabilidad y consumo[cite: 5]
 │       └── screens/        
 │
 ├── shared/                 # Widgets globales reutilizables en múltiples features
@@ -176,6 +194,11 @@ lib/
    - Permite consultar `SELECT DISTINCT Tienda.* FROM Tienda JOIN Historial_Compras ...` para el histórico global.
 4. **Alarmas Locales**:
    - Campo booleano `alarma_activa` y hora de notificación programada con `flutter_local_notifications` para alertar el día del vencimiento.
+5. **Registro de consumo y agotamiento**:
+   - Al consumir unidades, descontarlas de los lotes activos en orden FEFO dentro de una transacción.
+   - Registrar la cantidad efectivamente descontada y el stock total restante en `Historial_Consumos`, dentro de la misma transacción que actualiza los lotes.
+   - Si no hay unidades disponibles, no crear un evento de consumo.
+   - Determinar el agotamiento a partir de `stock_restante = 0`; un consumo que deja existencias positivas es parcial.
 
 ---
 
@@ -236,9 +259,20 @@ CREATE TABLE Historial_Compras (
     FOREIGN KEY (tienda_id) REFERENCES Tienda(id) ON DELETE RESTRICT
 );
 
+-- 6. Tabla de Histórico de Consumos de Inventario
+CREATE TABLE Historial_Consumos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    producto_id INTEGER NOT NULL,
+    fecha_consumo DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    stock_restante INTEGER NOT NULL CHECK (stock_restante >= 0),
+    FOREIGN KEY (producto_id) REFERENCES Producto(id) ON DELETE CASCADE
+);
+
 -- Índices clave para optimización de queries FEFO y Calendario
 CREATE INDEX idx_lote_caducidad ON Lote_Producto(fecha_caducidad, cantidad);
 CREATE INDEX idx_producto_categoria ON Producto(categoria_id);
+CREATE INDEX idx_historial_consumos_fecha ON Historial_Consumos(fecha_consumo);
 ```
 
 ---

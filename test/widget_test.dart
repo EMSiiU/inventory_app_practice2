@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_app_practice2/features/inventory/screens/new_item_screen.dart';
+import 'package:inventory_app_practice2/features/settings/screens/purchase_history_screen.dart';
 import 'package:inventory_app_practice2/shared/widgets/product_card.dart';
 
 void main() {
@@ -62,5 +63,42 @@ void main() {
     );
 
     expect(find.byIcon(CupertinoIcons.cube_box), findsOneWidget);
+  });
+
+  testWidgets('history distinguishes partial consumption from depletion', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Column(
+          children: [
+            InventoryHistoryEntryCard(
+              productName: 'Arroz',
+              imagePath: null,
+              isPurchase: false,
+              isDepleted: false,
+              quantity: 1,
+              dateLabel: '16/10/2026',
+              remainingStock: 2,
+            ),
+            InventoryHistoryEntryCard(
+              productName: 'Leche',
+              imagePath: null,
+              isPurchase: false,
+              isDepleted: true,
+              quantity: 1,
+              dateLabel: '16/10/2026',
+              remainingStock: 0,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.text('Consumo de inventario'), findsOneWidget);
+    expect(find.text('El artículo quedó agotado'), findsOneWidget);
+    expect(find.text('Restan 2'), findsOneWidget);
+    expect(find.text('Producto agotado'), findsOneWidget);
+    expect(find.text('-1 UNIDADES'), findsNWidgets(2));
   });
 }

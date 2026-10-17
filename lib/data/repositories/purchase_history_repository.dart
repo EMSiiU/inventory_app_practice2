@@ -34,19 +34,46 @@ class PurchaseHistoryRepository {
     });
   }
 
-  // Obtiene el historial completo con nombres de productos y tiendas
+  // Combina las compras y los consumos para mostrar una cronología de inventario.
   Future<List<Map<String, dynamic>>> getPurchaseHistory() async {
     final Database db = await _dbHelper.database;
 
     final String query = '''
-      SELECT h.*, 
-              p.nombre as producto_nombre,
-              p.imagen_url as producto_imagen_url,
-              t.nombre as tienda_nombre
+      SELECT * FROM (
+      SELECT
+        h.id,
+        'compra' AS tipo,
+        h.producto_id,
+        h.fecha_compra AS fecha,
+        h.cantidad,
+        h.precio_unitario,
+        NULL AS stock_restante,
+        0 AS agotado,
+        p.nombre AS producto_nombre,
+        p.imagen_url AS producto_imagen_url,
+        t.nombre AS tienda_nombre
       FROM Historial_Compras h
       JOIN Producto p ON h.producto_id = p.id
       JOIN Tienda t ON h.tienda_id = t.id
-      ORDER BY h.fecha_compra DESC
+
+      UNION ALL
+
+      SELECT
+        c.id,
+        'consumo' AS tipo,
+        c.producto_id,
+        c.fecha_consumo AS fecha,
+        c.cantidad,
+        NULL AS precio_unitario,
+        c.stock_restante,
+        CASE WHEN c.stock_restante = 0 THEN 1 ELSE 0 END AS agotado,
+        p.nombre AS producto_nombre,
+        p.imagen_url AS producto_imagen_url,
+        NULL AS tienda_nombre
+      FROM Historial_Consumos c
+      JOIN Producto p ON c.producto_id = p.id
+      ) AS movimientos
+      ORDER BY fecha DESC, id DESC
     ''';
 
     return await db.rawQuery(query);
