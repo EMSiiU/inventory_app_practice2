@@ -7,6 +7,7 @@ import 'manage_products_screen.dart';
 import 'purchase_history_screen.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../widgets/management_analytics_section.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -16,11 +17,8 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Gestión', 
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 28
-          ),
+          'Gestión',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28),
         ),
         backgroundColor: AppTheme.bgCanvas,
         elevation: 0,
@@ -29,23 +27,27 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildSettingsTile(
-            title: 'Mis Productos', 
-            icon: CupertinoIcons.cube_box_fill, 
+            title: 'Mis Productos',
+            icon: CupertinoIcons.cube_box_fill,
             onTap: () {
               Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const ManageProductsScreen(),)
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ManageProductsScreen(),
+                ),
               );
             },
           ),
           const SizedBox(height: 12),
           _buildSettingsTile(
-            title: 'Mis Categorías', 
-            icon: CupertinoIcons.tag_fill, 
+            title: 'Mis Categorías',
+            icon: CupertinoIcons.tag_fill,
             onTap: () {
               Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const ManageCategoriesScreen(),)
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ManageCategoriesScreen(),
+                ),
               );
             },
           ),
@@ -55,8 +57,10 @@ class SettingsScreen extends StatelessWidget {
             icon: CupertinoIcons.building_2_fill,
             onTap: () {
               Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const ManageStoreScreen(),)
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ManageStoreScreen(),
+                ),
               );
             },
           ),
@@ -66,17 +70,25 @@ class SettingsScreen extends StatelessWidget {
             icon: CupertinoIcons.clock_solid,
             onTap: () {
               Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const PurchaseHistoryScreen(),)
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PurchaseHistoryScreen(),
+                ),
               );
             },
           ),
+          const SizedBox(height: 16),
+          const ManagementAnalyticsSection(),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsTile({required String title, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildSettingsTile({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
       onTap: onTap,
       tileColor: AppTheme.surfaceCard,
@@ -91,9 +103,17 @@ class SettingsScreen extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+        style: const TextStyle(
+          color: AppTheme.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
       ),
-      trailing: const Icon(CupertinoIcons.chevron_right, color: Colors.grey, size: 20),
+      trailing: const Icon(
+        CupertinoIcons.chevron_right,
+        color: Colors.grey,
+        size: 20,
+      ),
     );
   }
 }

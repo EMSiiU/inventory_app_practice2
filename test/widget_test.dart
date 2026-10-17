@@ -1,11 +1,26 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventory_app_practice2/data/models/store_model.dart';
 import 'package:inventory_app_practice2/features/inventory/screens/new_item_screen.dart';
 import 'package:inventory_app_practice2/features/settings/screens/purchase_history_screen.dart';
 import 'package:inventory_app_practice2/shared/widgets/product_card.dart';
 
 void main() {
+  test('store model preserves fields without a classification', () {
+    final store = StoreModel.fromMap({
+      'id': 1,
+      'nombre': 'Tienda previa',
+      'ubicacion': 'Centro',
+      'icono': 'shop',
+    });
+
+    expect(store.name, 'Tienda previa');
+    expect(store.location, 'Centro');
+    expect(store.icon, 'shop');
+    expect(store.toMap().containsKey('tipo'), isFalse);
+  });
+
   testWidgets('new item form groups the initial batch fields', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: NewItemScreen()));
 

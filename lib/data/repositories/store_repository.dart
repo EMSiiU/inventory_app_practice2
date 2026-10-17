@@ -1,6 +1,7 @@
 // Archivo: lib/data/repositories/store_repository.dart
 
 import 'package:sqflite/sqflite.dart';
+
 import '../../core/database/database_helper.dart';
 import '../models/store_model.dart';
 
@@ -39,7 +40,11 @@ class StoreRepository {
   Future<bool> deleteStore(int id) async {
     final Database db = await _dbHelper.database;
     try {
-      final rowsAffected = await db.delete('Tienda', where: 'id = ?', whereArgs: [id]);
+      final rowsAffected = await db.delete(
+        'Tienda',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
       return rowsAffected > 0;
     } catch (e) {
       // Bloqueado por el historial de compras

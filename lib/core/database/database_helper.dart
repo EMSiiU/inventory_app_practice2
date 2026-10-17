@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  static final versionDB = 2;
+  static final versionDB = 4;
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
@@ -39,6 +39,14 @@ class DatabaseHelper {
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await _createConsumptionHistoryTable(db);
+    }
+    await _removeStoreTypeColumn(db);
+  }
+
+  Future<void> _removeStoreTypeColumn(DatabaseExecutor db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(Tienda)');
+    if (columns.any((column) => column['name'] == 'tipo')) {
+      await db.execute('ALTER TABLE Tienda DROP COLUMN tipo');
     }
   }
 
