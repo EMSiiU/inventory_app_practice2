@@ -36,14 +36,14 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
   Future<void> _addStore(String name) async {
     if (name.trim().isEmpty) return;
     await _storeRepo.insertStore(StoreModel(name: name.trim()));
-    _loadStores();
+    await _loadStores();
   }
 
   Future<void> _deleteStore(StoreModel store) async {
     if (store.id == null) return;
-    
+
     final success = await _storeRepo.deleteStore(store.id!);
-    
+
     if (success) {
       _loadStores();
       if (mounted) {
@@ -58,7 +58,10 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: AppTheme.surfaceCard,
-            title: const Text('No se puede eliminar', style: TextStyle(color: AppTheme.textPrimary)),
+            title: const Text(
+              'No se puede eliminar',
+              style: TextStyle(color: AppTheme.textPrimary),
+            ),
             content: const Text(
               'Esta tienda tiene registros en tu historial de compras. No se puede eliminar para no perder la trazabilidad de tus gastos.',
               style: TextStyle(color: AppTheme.textPrimary),
@@ -66,7 +69,10 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Entendido', style: TextStyle(color: AppTheme.accentBlue)),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(color: AppTheme.accentBlue),
+                ),
               ),
             ],
           ),
@@ -75,14 +81,17 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
     }
   }
 
-  void _showAddDialog() {
-    final TextEditingController controller = TextEditingController();
-    showDialog(
+  Future<void> _showAddDialog() async {
+    final controller = TextEditingController();
+    await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppTheme.surfaceCard,
-          title: const Text('Nueva Tienda', style: TextStyle(color: AppTheme.textPrimary)),
+          title: const Text(
+            'Nueva Tienda',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
           content: TextField(
             controller: controller,
             style: const TextStyle(color: AppTheme.textPrimary),
@@ -102,20 +111,37 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentBlue),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentBlue,
+              ),
               onPressed: () {
+                if (controller.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Ingresa el nombre de la tienda.'),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.pop(context);
                 _addStore(controller.text);
               },
-              child: const Text('Guardar', style: TextStyle(color: AppTheme.textPrimary)),
+              child: const Text(
+                'Guardar',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
             ),
           ],
         );
       },
     );
+    controller.dispose();
   }
 
   @override
@@ -128,46 +154,68 @@ class _ManageStoreScreenState extends State<ManageStoreScreen> {
             onAddPressed: _showAddDialog,
             // onCartPressed se omite
           ),
-          
+
           if (_isLoading)
             const SliverToBoxAdapter(
-              child: Center(child: Padding(padding: EdgeInsets.all(32.0), child: CircularProgressIndicator())),
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             )
           else if (_stores.isEmpty)
             const SliverToBoxAdapter(
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
-                  child: Text('No hay tiendas. Presiona + para agregar.', style: TextStyle(color: AppTheme.textPrimary)),
+                  child: Text(
+                    'No hay tiendas. Presiona + para agregar.',
+                    style: TextStyle(color: AppTheme.textPrimary),
+                  ),
                 ),
               ),
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final store = _stores[index];
-                    return Card(
-                      color: AppTheme.surfaceElevated,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: ListTile(
-                        title: Text(store.name, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16)),
-                        leading: const Icon(CupertinoIcons.building_2_fill, color: AppTheme.accentBlue),
-                        trailing: IconButton(
-                          icon: const Icon(CupertinoIcons.trash, color: AppTheme.badgeAccent),
-                          onPressed: () => _deleteStore(store),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final store = _stores[index];
+                  return Card(
+                    color: AppTheme.surfaceElevated,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      title: Text(
+                        store.name,
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
                         ),
                       ),
-                    );
-                  },
-                  childCount: _stores.length,
-                ),
+                      leading: const Icon(
+                        CupertinoIcons.building_2_fill,
+                        color: AppTheme.accentBlue,
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          CupertinoIcons.trash,
+                          color: AppTheme.badgeAccent,
+                        ),
+                        onPressed: () => _deleteStore(store),
+                      ),
+                    ),
+                  );
+                }, childCount: _stores.length),
               ),
             ),
-            
+
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),

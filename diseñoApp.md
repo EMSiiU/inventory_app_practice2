@@ -139,8 +139,13 @@ Inspirado en las capturas de referencia (`item-lists-dark.png`, `items-dark.png`
 
 ### Pantalla 6: Trazabilidad de Tiendas y Estadísticas ("Tendencias")
 * Inspirada en `trends-dark.png`.
-* Gráfico de consumo semanal/mensual de artículos.
-* Desglose por tienda habitual (Supermercado, Tienda local, Mercado, etc.) mostrando histórico global y última tienda.
+* En Gestión, debajo de "Historial de Movimientos", presentar tres tarjetas de estadísticas con estilo oscuro iOS:
+  - Gráfico de consumo diario de unidades en los últimos siete días, sin selector mensual.
+  - Desglose histórico por nombre de tienda, con unidades compradas y gasto sumado desde los precios unitarios disponibles.
+  - Gráfico proporcional de consumos que agotaron el stock frente a consumos parciales, calculado desde `stock_restante`.
+* Las tarjetas muestran estados vacíos cuando aún no hay registros. Los precios ausentes no se contabilizan como gasto.
+* La tarjeta de agotamiento debe tener espacio de desplazamiento bajo ella para que la barra de navegación inferior no oculte la gráfica.
+* Las tiendas se identifican por su nombre; no se mantiene una clasificación adicional por tipo.
 
 ---
 ## Arquitectura Basada en Funcionalidades (Feature-First)

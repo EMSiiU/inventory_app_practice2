@@ -78,4 +78,60 @@ class PurchaseHistoryRepository {
 
     return await db.rawQuery(query);
   }
+
+  Future<List<Map<String, dynamic>>> getConsumptionByDay({
+    required DateTime startDate,
+    required DateTime endDateExclusive,
+  }) async {
+    final Database db = await _dbHelper.database;
+    return db.rawQuery(
+      '''
+      SELECT date(fecha_consumo) AS fecha, SUM(cantidad) AS unidades
+      FROM Historial_Consumos
+      WHERE date(fecha_consumo) >= date(?) AND date(fecha_consumo) < date(?)
+      GROUP BY date(fecha_consumo)
+      ORDER BY fecha
+      ''',
+      [_dateOnly(startDate), _dateOnly(endDateExclusive)],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getStorePurchaseSummaries() async {
+    final Database db = await _dbHelper.database;
+    return db.rawQuery('''
+      SELECT
+        t.id AS tienda_id,
+        t.nombre AS tienda_nombre,
+        SUM(h.cantidad) AS unidades,
+        SUM(
+          CASE
+            WHEN h.precio_unitario IS NOT NULL
+            THEN h.cantidad * h.precio_unitario
+          END
+        ) AS gasto_total
+      FROM Historial_Compras h
+      JOIN Tienda t ON h.tienda_id = t.id
+      GROUP BY t.id, t.nombre
+      ORDER BY unidades DESC, t.nombre COLLATE NOCASE
+    ''');
+  }
+
+  Future<Map<String, dynamic>> getConsumptionOutcomeSummary() async {
+    final Database db = await _dbHelper.database;
+    final rows = await db.rawQuery('''
+      SELECT
+        COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN stock_restante = 0 THEN 1 ELSE 0 END), 0)
+          AS agotados,
+        COALESCE(SUM(CASE WHEN stock_restante > 0 THEN 1 ELSE 0 END), 0)
+          AS parciales
+      FROM Historial_Consumos
+    ''');
+    return rows.single;
+  }
+
+  String _dateOnly(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }
