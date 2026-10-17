@@ -45,6 +45,8 @@ dependencies:
   shimmer: ^3.0.0
   fl_chart: ^0.68.0
   mobile_scanner: ^5.1.1
+  image_picker: ^1.2.4
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
