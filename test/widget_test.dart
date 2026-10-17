@@ -2,12 +2,67 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_app_practice2/data/models/store_model.dart';
+import 'package:inventory_app_practice2/features/inventory/screens/inventory_screen.dart';
 import 'package:inventory_app_practice2/features/inventory/screens/new_item_screen.dart';
 import 'package:inventory_app_practice2/features/settings/screens/manage_store_screen.dart';
 import 'package:inventory_app_practice2/features/settings/screens/purchase_history_screen.dart';
 import 'package:inventory_app_practice2/shared/widgets/product_card.dart';
 
 void main() {
+  test('inventory search, category, stock filters and sort are combined', () {
+    final products = [
+      {
+        'nombre': 'Leche',
+        'category_name': 'Lácteos',
+        'stock_total': 1,
+        'stock_seguridad': 2,
+      },
+      {
+        'nombre': 'Arroz',
+        'category_name': 'Abarrotes',
+        'stock_total': 8,
+        'stock_seguridad': 2,
+      },
+      {
+        'nombre': 'Leche sin stock',
+        'category_name': 'Lácteos',
+        'stock_total': 0,
+        'stock_seguridad': 2,
+      },
+    ];
+
+    final filtered = filterAndSortInventoryProducts(
+      products: products,
+      query: '  LECHE ',
+      category: 'Lácteos',
+      stockFilter: InventoryStockFilter.lowStock,
+      sortOrder: InventorySortOrder.stockAscending,
+    );
+
+    expect(filtered.map((product) => product['nombre']), ['Leche']);
+  });
+
+  test('inventory can filter all in-stock products and sort by quantity', () {
+    final products = [
+      {'nombre': 'Zanahoria', 'stock_total': 4, 'stock_seguridad': 1},
+      {'nombre': 'Arroz', 'stock_total': 2, 'stock_seguridad': 1},
+      {'nombre': 'Agua', 'stock_total': 0, 'stock_seguridad': 1},
+    ];
+
+    final filtered = filterAndSortInventoryProducts(
+      products: products,
+      query: '',
+      category: null,
+      stockFilter: InventoryStockFilter.inStock,
+      sortOrder: InventorySortOrder.stockAscending,
+    );
+
+    expect(filtered.map((product) => product['nombre']), [
+      'Arroz',
+      'Zanahoria',
+    ]);
+  });
+
   test('store model preserves fields without a classification', () {
     final store = StoreModel.fromMap({
       'id': 1,
