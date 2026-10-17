@@ -80,6 +80,7 @@ class _NewItemScreenState extends State<NewItemScreen> {
           'Abarrotes',
           'Frutas y Verduras',
           'Latas',
+          'Otra'
         ];
 
         for (var name in defaultCategories) {
@@ -120,6 +121,7 @@ class _NewItemScreenState extends State<NewItemScreen> {
           'Costco',
           'Mercado Local',
           'Tienda 3B',
+          'Otra'
         ];
 
         for (var name in defaultStores) {
