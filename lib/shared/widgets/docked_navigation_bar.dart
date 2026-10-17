@@ -41,10 +41,6 @@ class DockedNavigationBar extends StatelessWidget {
               icon: Icon(CupertinoIcons.gear),
               label: 'Gestión',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.barcode_viewfinder),
-              label: 'Escáner',
-            ),
           ],
         ),
       ),

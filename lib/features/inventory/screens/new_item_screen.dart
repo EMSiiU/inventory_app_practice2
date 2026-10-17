@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 
@@ -29,7 +34,9 @@ class _NewItemScreenState extends State<NewItemScreen> {
   final _productRepo = ProductRepository();
   final _storeRepo = StoreRepository();
   final _historyRepo = PurchaseHistoryRepository();
+  final _imagePicker = ImagePicker();
 
+  XFile? _selectedImage;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 30));
   bool _alarmActive = true;
   bool _isSaving = false;
@@ -58,21 +65,22 @@ class _NewItemScreenState extends State<NewItemScreen> {
   }
 
   // Busca las categorías. Si no hay, inyecta las opciones por defecto.
-  Future<void> _loadCategories() async{
+  Future<void> _loadCategories() async {
     try {
       var categories = await _categoryRepo.getAllCategories();
 
       // Si la base de datos está casi vacía, insertamos tus categorías
       if (categories.isEmpty || categories.length <= 1) {
         final defaultCategories = [
-          'Lácteos', 
-          'Carnes', 
-          'Embutidos', 
-          'Aderezos', 
-          'Bebidas', 
-          'Abarrotes', 
+          'Lácteos',
+          'Carnes',
+          'Embutidos',
+          'Aderezos',
+          'Bebidas',
+          'Abarrotes',
           'Frutas y Verduras',
-          'Latas'];
+          'Latas',
+        ];
 
         for (var name in defaultCategories) {
           // Validar que no exista una con el mismo nombre
@@ -86,7 +94,9 @@ class _NewItemScreenState extends State<NewItemScreen> {
       if (mounted) {
         setState(() {
           _categories = categories;
-          _selectedCategoryId = categories.isNotEmpty?categories.first.id : null;
+          _selectedCategoryId = categories.isNotEmpty
+              ? categories.first.id
+              : null;
           _isLoadingCategories = false;
         });
       }
@@ -96,20 +106,20 @@ class _NewItemScreenState extends State<NewItemScreen> {
     }
   }
 
-  Future<void> _loadStores() async{
+  Future<void> _loadStores() async {
     try {
       var stores = await _storeRepo.getAllStores();
 
       if (stores.isEmpty) {
         final defaultStores = [
-          'Bodega Aurrera', 
-          'Walmart', 
-          'Soriana', 
-          'Chedraui', 
+          'Bodega Aurrera',
+          'Walmart',
+          'Soriana',
+          'Chedraui',
           'H-E-B',
-          'Costco', 
+          'Costco',
           'Mercado Local',
-          'Tienda 3B'
+          'Tienda 3B',
         ];
 
         for (var name in defaultStores) {
@@ -131,20 +141,23 @@ class _NewItemScreenState extends State<NewItemScreen> {
     }
   }
 
-
   Future<void> _saveItem() async {
     if (_isSaving || !(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isSaving = true);
 
+    String? persistedImagePath;
+    var productSaved = false;
     try {
       // final categoryId = await _categoryRepo.getOrCreateDefaultCategoryId();
       if (_selectedCategoryId == null) return;
       final categoryId = _selectedCategoryId!;
+      persistedImagePath = await _persistSelectedImage();
 
       final newProduct = ProductModel(
         name: _nameController.text.trim(),
         categoryId: categoryId,
+        imageUrl: persistedImagePath,
         lastStoreId: _selectedStoreId,
         securityStock: 1,
         isAlarmActive: _alarmActive,
@@ -157,6 +170,7 @@ class _NewItemScreenState extends State<NewItemScreen> {
         expirationDate: _selectedDate,
         quantity: int.parse(_quantityController.text.trim()),
       );
+      productSaved = true;
 
       // Guardar la compra en el historial
       if (_selectedStoreId != null) {
@@ -164,17 +178,26 @@ class _NewItemScreenState extends State<NewItemScreen> {
         final int quantity = int.parse(_quantityController.text.trim());
 
         await _historyRepo.registerPurchaseAndUpdateStore(
-          productId, 
-          _selectedStoreId!, 
-          quantity, 
-          price
+          productId,
+          _selectedStoreId!,
+          quantity,
+          price,
         );
       }
-
 
       if (mounted) Navigator.pop(context, true);
     } catch (error, stackTrace) {
       debugPrint('Error al guardar artículo: $error\n$stackTrace');
+      if (!productSaved && persistedImagePath != null) {
+        try {
+          await File(persistedImagePath).delete();
+        } catch (cleanupError, cleanupStackTrace) {
+          debugPrint(
+            'Error al eliminar la imagen temporal del artículo: '
+            '$cleanupError\n$cleanupStackTrace',
+          );
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No se pudo guardar el artículo: $error')),
@@ -182,6 +205,46 @@ class _NewItemScreenState extends State<NewItemScreen> {
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<String?> _persistSelectedImage() async {
+    final selectedImage = _selectedImage;
+    if (selectedImage == null) return null;
+
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final imageDirectory = Directory(
+      path.join(documentsDirectory.path, 'product_images'),
+    );
+    await imageDirectory.create(recursive: true);
+
+    final imageExtension = path.extension(selectedImage.name);
+    final fileName =
+        'product_${DateTime.now().microsecondsSinceEpoch}'
+        '${imageExtension.isEmpty ? '.jpg' : imageExtension}';
+    final savedImage = await File(selectedImage.path)
+        .copy(path.join(imageDirectory.path, fileName));
+    return savedImage.path;
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
+      if (image != null && mounted) {
+        setState(() => _selectedImage = image);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Error al seleccionar imagen: $error\n$stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo seleccionar la imagen: $error')),
+        );
+      }
     }
   }
 
@@ -250,6 +313,69 @@ class _NewItemScreenState extends State<NewItemScreen> {
                             ?.copyWith(fontSize: 28),
                       ),
                       const SizedBox(height: 20),
+                      Text(
+                        'Imagen del artículo (opcional)',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          height: 180,
+                          width: double.infinity,
+                          color: AppTheme.surfaceCard,
+                          alignment: Alignment.center,
+                          child: _selectedImage == null
+                              ? const Icon(
+                                  CupertinoIcons.cube_box,
+                                  color: AppTheme.textSecondary,
+                                  size: 48,
+                                )
+                              : Image.file(
+                                  File(_selectedImage!.path),
+                                  width: double.infinity,
+                                  height: 180,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        CupertinoIcons.photo,
+                                        color: AppTheme.textSecondary,
+                                        size: 48,
+                                      ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _pickImage(ImageSource.camera),
+                              icon: const Icon(CupertinoIcons.camera),
+                              label: const Text('Tomar foto'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _pickImage(ImageSource.gallery),
+                              icon: const Icon(CupertinoIcons.photo),
+                              label: const Text('Elegir de galería'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_selectedImage != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () =>
+                                setState(() => _selectedImage = null),
+                            icon: const Icon(CupertinoIcons.trash),
+                            label: const Text('Quitar imagen'),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
                       TextFormField(
                         controller: _nameController,
                         textCapitalization: TextCapitalization.sentences,
@@ -265,57 +391,68 @@ class _NewItemScreenState extends State<NewItemScreen> {
                       ),
                       const SizedBox(height: 24),
                       _isLoadingCategories
-                        ? const Center(child: CircularProgressIndicator())
-                        : DropdownButtonFormField<int>(
-                          value: _selectedCategoryId,
-                          decoration: _fieldDecoration('Categoría'),
-                          dropdownColor: AppTheme.surfaceElevated,
-                          items: _categories.map((cat) {
-                            return DropdownMenuItem<int>(
-                              value: cat.id,
-                              child: Text(
-                                cat.name,
-                                style: const TextStyle(color: AppTheme.textPrimary),
-                              )
-                            );
-                          }).toList(), 
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCategoryId = value;
-                            });
-                          },
-                          validator: (value) => 
-                            value == null ? 'Seleccione una categoría' : null,
-                        ),
+                          ? const Center(child: CircularProgressIndicator())
+                          : DropdownButtonFormField<int>(
+                              value: _selectedCategoryId,
+                              decoration: _fieldDecoration('Categoría'),
+                              dropdownColor: AppTheme.surfaceElevated,
+                              items: _categories.map((cat) {
+                                return DropdownMenuItem<int>(
+                                  value: cat.id,
+                                  child: Text(
+                                    cat.name,
+                                    style: const TextStyle(
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategoryId = value;
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? 'Seleccione una categoría'
+                                  : null,
+                            ),
                       const SizedBox(height: 24),
                       _isLoadingStores
-                        ? const Center(child: CircularProgressIndicator())
-                        : DropdownButtonFormField<int>(
-                          value: _selectedStoreId,
-                          decoration: _fieldDecoration('Tienda'),
-                          dropdownColor: AppTheme.surfaceElevated,
-                          items: _stores.map((store) {
-                            return DropdownMenuItem<int>(
-                              value: store.id,
-                              child: Text(
-                                store.name,
-                                style: const TextStyle(color: AppTheme.textPrimary),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedStoreId = value;
-                            });
-                          },
-                        ),
+                          ? const Center(child: CircularProgressIndicator())
+                          : DropdownButtonFormField<int>(
+                              value: _selectedStoreId,
+                              decoration: _fieldDecoration('Tienda'),
+                              dropdownColor: AppTheme.surfaceElevated,
+                              items: _stores.map((store) {
+                                return DropdownMenuItem<int>(
+                                  value: store.id,
+                                  child: Text(
+                                    store.name,
+                                    style: const TextStyle(
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedStoreId = value;
+                                });
+                              },
+                            ),
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _priceController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: _fieldDecoration('Precio Unitario').copyWith(
-                          prefixIcon: const Icon(Icons.attach_money, color: AppTheme.textSecondary),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
+                        decoration: _fieldDecoration('Precio Unitario')
+                            .copyWith(
+                              prefixIcon: const Icon(
+                                Icons.attach_money,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
                       ),
                       const SizedBox(height: 24),
                       Text(

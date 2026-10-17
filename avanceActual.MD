@@ -1,11 +1,13 @@
 # Avance actual de Inventory App
 
-**Fecha de actualización:** 11 de octubre de 2026  
+**Fecha de actualización:** 16 de octubre de 2026
 **Base de referencia:** arquitectura y requerimientos de [`diseñoApp.md`](./diseñoApp.md).
 
 ## Resumen
 
-La aplicación cuenta con una base Flutter organizada en tema, persistencia local SQLite, modelos, repositorios, widgets compartidos y pantallas de inventario. El flujo para registrar un artículo y su lote inicial está implementado y fue corregido para guardar ambos registros en una sola transacción. La interfaz todavía representa una parte del diseño: inventario y formulario son las pantallas funcionales principales; calendario, reposición, búsqueda, escáner, tendencias y notificaciones aún no están integrados como flujos completos.
+La aplicación Flutter ya tiene navegación principal activa y flujos conectados para inventario, registro de artículos, calendario de caducidades, carrito de reposición y gestión de productos, categorías, tiendas e historial de compras. SQLite conserva los datos localmente; el inventario calcula existencias desde los lotes y permite consumirlas en orden FEFO.
+
+El avance es funcional, pero parcial frente al diseño: el escáner sigue siendo un marcador de posición, no hay búsqueda ni tendencias, las alarmas solo guardan una preferencia y faltan edición/detalle de productos. La verificación actual también encontró una prueba de widget fallida por una expectativa que no corresponde al formulario actual.
 
 ## Arquitectura actual
 
@@ -26,10 +28,21 @@ lib/
 │       ├── product_repository.dart
 │       ├── purchase_history_repository.dart
 │       └── store_repository.dart
-├── features/inventory/screens/
-│   ├── home_screen.dart
-│   ├── inventory_screen.dart
-│   └── new_item_screen.dart
+├── features/
+│   ├── calendar/screens/calendar_screen.dart
+│   ├── cart/
+│   │   ├── cart_manager.dart
+│   │   └── screens/cart_screen.dart
+│   ├── inventory/screens/
+│   │   ├── home_screen.dart
+│   │   ├── inventory_screen.dart
+│   │   └── new_item_screen.dart
+│   └── settings/screens/
+│       ├── manage_categories_screen.dart
+│       ├── manage_products_screen.dart
+│       ├── manage_store_screen.dart
+│       ├── purchase_history_screen.dart
+│       └── settings_screen.dart
 ├── shared/widgets/
 │   ├── custom_sliver_app_bar.dart
 │   ├── docked_navigation_bar.dart
@@ -37,85 +50,64 @@ lib/
 └── main.dart
 ```
 
-La organización por funcionalidades está iniciada, pero los módulos `calendar`, `cart` y `trends` descritos en el diseño todavía no aparecen en `lib/`. La navegación inferior y `HomeScreen` existen, aunque `main.dart` actualmente abre directamente `InventoryScreen`; por ello, las pestañas aún no forman parte del flujo activo de la aplicación.
+`main.dart` inicia `HomeScreen`, que ofrece tres pestañas: Artículos, Calendario y Gestión. La pestaña de Escáner se retiró de la navegación mientras se define el flujo para capturar o seleccionar fotos durante el alta de un artículo. Búsqueda/trazabilidad tampoco está implementada todavía.
 
-## Avances implementados
+## Estado por funcionalidad
 
-### Interfaz y tema
+### Implementado
 
-- Tema oscuro OLED con fondo negro, superficies oscuras, azul de acción y colores de estado definidos en `AppTheme`.
-- Inter se aplica globalmente mediante `GoogleFonts.inter()`.
-- Encabezado de inventario con título grande, botón para añadir y acceso visual al carrito.
-- Tarjetas de producto con nombre, estado de existencias, cantidad y acciones deslizables.
-- Formulario de nuevo artículo con nombre, fecha de caducidad, cantidad inicial y switch de alarmas.
-- Formulario ajustado para mantener campos agrupados, permitir desplazamiento con el teclado abierto y mostrar errores de guardado.
+- **Tema y componentes:** tema oscuro con tipografía Inter, barra inferior translúcida, encabezados con efecto blur, tarjetas de productos y badge reactivo del carrito.
+- **Inventario:** lectura de productos y stock calculado desde lotes; muestra nombres de categoría y última tienda. Las tarjetas permiten agregar al carrito o consumir una unidad.
+- **Alta de artículo:** formulario con nombre, categoría, tienda, precio, fecha de caducidad, cantidad inicial, preferencia de alarma e imagen opcional, capturada con la cámara o elegida de la galería. La imagen se copia al almacenamiento privado persistente y su ruta se guarda en el producto. La categoría y la tienda se precargan con opciones predeterminadas cuando sus tablas están vacías (o, para categorías, tienen como máximo un registro).
+- **Imagen en inventario:** las tarjetas muestran la imagen guardada del artículo y conservan el ícono predeterminado cuando no hay imagen o el archivo no está disponible.
+- **Persistencia:** `DatabaseHelper` crea las tablas `Categoria`, `Tienda`, `Producto`, `Lote_Producto` e `Historial_Compras`, con llaves foráneas e índices. El alta del producto y su lote inicial usa una transacción.
+- **Consumo FEFO:** `ProductRepository` descuenta existencias de los lotes con fecha de caducidad más próxima.
+- **Calendario:** muestra marcadores en días con lotes activos por caducar y un modal con el nombre del producto y las unidades restantes.
+- **Carrito y compras:** agregar/quitar productos, editar cantidad, capturar precio y caducidad, seleccionar tienda y registrar lote, historial y última tienda.
+- **Gestión:** creación y eliminación básica de categorías y tiendas; alta/eliminación de productos; consulta del historial de compras.
 
-### Persistencia y reglas de inventario
+### Parcial o pendiente
 
-- `DatabaseHelper` configura SQLite y crea las tablas `Categoria`, `Tienda`, `Producto`, `Lote_Producto` e `Historial_Compras`, con llaves foráneas e índices.
-- Los modelos representan categorías, tiendas, productos y lotes.
-- Los repositorios incluyen operaciones para leer e insertar productos, lotes, categorías y tiendas.
-- Al crear un artículo, se garantiza que exista una categoría válida; si la base no tiene categorías, se crea «Despensa».
-- El artículo y su lote inicial se insertan dentro de una transacción: si una inserción falla, no queda un registro parcial.
-- El inventario calcula el total de unidades desde los lotes activos.
-- El consumo de unidades recorre lotes ordenados por fecha de caducidad (FEFO).
-- Existe un repositorio capaz de registrar una compra y actualizar la última tienda del producto, aunque todavía no está conectado a una pantalla de compra.
+- El estado de las tarjetas depende únicamente de existencias. La condición «próximo a caducar» no está conectada; el estado `warning` aún no se utiliza.
+- El modal del calendario solo consulta y muestra los lotes: no ofrece acciones para consumirlos ni agregarlos al carrito. Los errores de carga se registran en consola, sin una vista de error dedicada.
+- El carrito vive en memoria y no persiste al cerrar la aplicación. El checkout procesa artículos uno por uno: el lote y el historial se guardan en operaciones separadas y no hay una transacción única para toda la compra.
+- La cantidad y el precio del checkout no tienen validación de formulario; valores que no se puedan convertir se sustituyen por valores predeterminados.
+- La creación de artículo guarda producto y lote en una transacción, pero la escritura posterior del historial de compra queda fuera de ella.
+- No hay edición ni detalle de productos. El stock mínimo se fija en `1`; no se capturan marca, UPC/código de barras ni código de lote en el formulario.
+- El switch de alarma persiste `alarma_activa`, pero no hay programación de notificaciones locales.
+- Escáner de códigos de barras, búsqueda/trazabilidad y tendencias todavía no tienen flujos implementados; la dependencia `mobile_scanner` está declarada, pero no conectada a una pantalla.
+- La base está en versión 1 y no define todavía migraciones para cambios futuros del esquema.
 
-### Verificación reciente
+## Verificación realizada
 
-- Las dos pruebas de widgets del formulario pasan: comprobación de campos agrupados y validación de entradas requeridas.
-- El análisis de los archivos Dart modificados no encontró problemas.
-- La compilación Android de depuración generó el APK correctamente.
-- No se ha confirmado todavía el flujo en un teléfono físico.
+Verificación local ejecutada con Flutter 3.47.1 y Dart 3.13.1:
 
-## Pendientes respecto al diseño
-
-- El selector de categoría no está en el formulario. Al guardar se utiliza la categoría existente de menor ID o se crea «Despensa» si no hay ninguna.
-- No se capturan marca, UPC/código de barras, stock mínimo configurable, código de lote ni tienda de compra en el formulario.
-- La lista muestra identificadores de categoría y tienda, no sus nombres legibles.
-- La detección de productos próximos a caducar está pendiente; el estado de las tarjetas actualmente se deriva del stock.
-- El ícono de carrito no abre una pantalla y su contador está fijo en cero.
-- Las pestañas de alacena, búsqueda y escáner no están conectadas a pantallas funcionales.
-- El switch guarda el indicador de alarma en el producto, pero todavía no se programan notificaciones locales.
-- No hay pantallas de detalle o edición de producto implementadas.
-- El esquema de base de datos está en versión 1 y aún no tiene un flujo de migración para futuras modificaciones.
+- **`flutter test`:** las 3 pruebas de widgets pasan, incluidas las acciones de imagen del formulario, validación de campos y placeholder de la tarjeta. Las pruebas del formulario todavía registran errores capturados de inicialización de `sqflite` al cargar categorías y tiendas en el entorno de widgets.
+- **`flutter analyze`:** reporta 17 hallazgos informativos y termina con código de salida distinto de cero; no reporta errores ni advertencias. Son recomendaciones de estilo y uso de APIs obsoletas.
+- **`flutter build apk --debug`:** compilación Android correcta.
+- La captura y selección reales, así como la persistencia en un dispositivo, todavía requieren validación manual en Android/iOS.
 
 ## Próximos pasos sugeridos
 
-Los pasos están ordenados para completar las capas de datos y conectar después sus pantallas. Se enfocan en los componentes contemplados en el diseño actual.
-
-1. **Completar el flujo de inventario (`features/inventory`)**
-   - Mostrar nombres de categoría y tienda en vez de sus IDs.
-   - Integrar la consulta de lotes con la lista para calcular estados de caducidad y alertas.
-   - Terminar el formulario con selector de categoría y los campos de lote/tienda que define `diseñoApp.md`.
-   - Añadir las pantallas de detalle y edición para completar el CRUD previsto.
-
-2. **Activar la navegación (`main.dart`, `HomeScreen` y `shared/widgets`)**
-   - Decidir la composición de las cuatro pestañas del diseño y conectarla desde `main.dart`.
-   - Enlazar cada pestaña solo cuando su pantalla correspondiente esté implementada.
-
-3. **Implementar calendario (`features/calendar`)**
-   - Crear la vista de calendario y conectar `BatchRepository.getBatchesExpiringOnDate`.
-   - Mostrar lotes que vencen en la fecha seleccionada y reutilizar la lógica FEFO para consumir unidades.
-
-4. **Implementar carrito y reposición (`features/cart`)**
-   - Definir cómo persistir los artículos seleccionados para reposición antes de construir su interfaz.
-   - Conectar la compra completada con la creación del lote y `PurchaseHistoryRepository`.
-   - Verificar que la última tienda y el historial se actualicen de forma consistente.
-
-5. **Implementar búsqueda, tendencias y escáner**
-   - Crear las pantallas planeadas para búsqueda/trazabilidad y gráficos a partir del historial de compras.
-   - Conectar el flujo de escaneo a la dependencia `mobile_scanner` ya declarada y al formulario existente.
-
-6. **Completar alarmas locales**
-   - Definir permisos, programación y cancelación de notificaciones según el indicador de alarma guardado.
-   - Probar el comportamiento en Android físico además de emulador.
-
-7. **Ampliar validación automatizada**
-   - Añadir pruebas de repositorios con una base SQLite de prueba para inserciones, transacciones, stock y FEFO.
-   - Añadir pruebas de navegación y formularios conforme se conecten las pantallas.
-   - Verificar los flujos en emulador y teléfono físico antes de considerar cerrada la compatibilidad móvil.
+1. **Estabilizar pruebas y análisis**
+   - Actualizar las expectativas del formulario para reflejar sus campos actuales.
+   - Preparar una base SQLite de prueba o aislar la carga de datos en pruebas de widgets.
+   - Resolver los hallazgos de `flutter analyze`, empezando por declarar correctamente las dependencias directas.
+2. **Cerrar integridad de compras**
+   - Validar cantidad, precio y tienda antes del checkout.
+   - Hacer transaccional la creación de lote e historial y evitar compras parcialmente guardadas al procesar varios artículos.
+   - Definir si el carrito debe conservarse al reiniciar la aplicación.
+3. **Completar la gestión de inventario**
+   - Añadir detalle y edición del producto, stock mínimo configurable y los campos de marca, UPC y código de lote contemplados en el diseño.
+   - Conectar lotes y fechas de caducidad al estado de las tarjetas y agregar las acciones de consumo/reposición al calendario.
+4. **Completar secciones previstas**
+   - Implementar y conectar el escáner, búsqueda/trazabilidad y tendencias.
+   - Implementar permisos, programación y cancelación de alarmas locales.
+5. **Validar persistencia y plataformas**
+   - Agregar pruebas de repositorios para transacciones, stock, FEFO, compras y restricciones de borrado.
+   - Ejecutar compilación y pruebas en emulador/dispositivo para las plataformas objetivo.
+   - Incorporar migraciones antes de evolucionar el esquema de base de datos.
 
 ## Criterio de avance
 
-Cada módulo debe quedar conectado de extremo a extremo —interfaz, repositorio y persistencia— y contar con pruebas del comportamiento esencial antes de considerarse completo. Las funciones descritas en “Próximos pasos” son trabajo pendiente; no se deben interpretar como funcionalidades ya entregadas.
+Considerar completa una funcionalidad cuando su interfaz, reglas de negocio y persistencia estén conectadas, sus casos esenciales estén probados y los errores tengan una respuesta visible. Los puntos descritos como parciales o pendientes no deben interpretarse como entregados.

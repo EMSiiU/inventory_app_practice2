@@ -5,7 +5,6 @@ import '../../../shared/widgets/docked_navigation_bar.dart';
 import '../../calendar/screens/calendar_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import 'inventory_screen.dart';
-// import '../../calendar/screens/calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,12 +16,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // Lista de pantallas para cada pestaña
   final List<Widget> _screens = [
     const InventoryScreen(),
-    const CalendarScreen(), // Pestaña "Alacena/Calendario"
+    const CalendarScreen(),
     const SettingsScreen(),
-    const Center(child: Text('Pantalla de Escáner (En desarrollo)')),
   ];
 
   void _onTabTapped(int index) {

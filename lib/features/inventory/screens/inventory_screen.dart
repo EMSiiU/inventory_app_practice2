@@ -22,7 +22,7 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   final ProductRepository _productRepo = ProductRepository();
-  
+
   // Future que cargará los datos
   late Future<List<Map<String, dynamic>>> _productsFuture;
 
@@ -51,7 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return CustomScrollView(
       slivers: [
         CustomSliverAppBar(
-          title: 'Artículos', 
+          title: 'Artículos',
           onAddPressed: () async {
             // Navega al formulario y recarga la lista al regresar
             await Navigator.push(
@@ -60,7 +60,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             );
             _loadProducts();
           },
-          onCartPressed: () async{
+          onCartPressed: () async {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CartScreen()),
@@ -71,12 +71,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
             }
           },
         ),
-        
+
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Text(
-              'Todos los artículos', 
+              'Todos los artículos',
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -108,61 +111,65 @@ class _InventoryScreenState extends State<InventoryScreen> {
             final products = snapshot.data!;
 
             return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final product = products[index];
-                  final stockTotal = product['stock_total'] as int;
-                  final securityStock = product['stock_seguridad'] as int;
-                  final status = _determineStatus(stockTotal, securityStock);
-                  
-                  // Textos dinámicos según el estado
-                  String statusText = 'Stock óptimo';
-                  if (stockTotal == 0) statusText = 'Agotado';
-                  else if (stockTotal <= securityStock) statusText = 'Stock bajo';
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final product = products[index];
+                final stockTotal = product['stock_total'] as int;
+                final securityStock = product['stock_seguridad'] as int;
+                final status = _determineStatus(stockTotal, securityStock);
 
-                  return ProductCard(
-                    name: product['nombre'],
-                    category: 'Categoría: ${product['category_name'] ?? 'Sin categoría'}', 
-                    store: 'Última tienda: ${product['last_store_name'] ?? 'N/A'}',
-                    statusText: statusText,
-                    quantity: stockTotal,
-                    status: status,
-                    onAddToCart: () {
-                      CartManager.instance.addToCart(
-                        product['id'] as int, 
-                        product['nombre'] as String,
-                      );
-                      // Mensaje rapido
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${product['nombre']} agregado al carrito'),
-                          duration: const Duration(seconds: 2),
-                          action: SnackBarAction(
-                            label: 'Deshacer', 
-                            textColor: AppTheme.accentBlue,
-                            onPressed: () {
-                              CartManager.instance.removeFromCart(product['id'] as int);
-                            },
-                          ),
-                        )
-                      );
-                    },
-                    onConsume: () async {
-                      await _productRepo.consumeProductFefo(product['id'], 1);
-                      _loadProducts(); // Recarga la lista tras consumir
-                    },
-                  );
-                },
-                childCount: products.length,
-              ),
+                // Textos dinámicos según el estado
+                String statusText = 'Stock óptimo';
+                if (stockTotal == 0)
+                  statusText = 'Agotado';
+                else if (stockTotal <= securityStock)
+                  statusText = 'Stock bajo';
+
+                return ProductCard(
+                  name: product['nombre'],
+                  category:
+                      'Categoría: ${product['category_name'] ?? 'Sin categoría'}',
+                  store:
+                      'Última tienda: ${product['last_store_name'] ?? 'N/A'}',
+                  statusText: statusText,
+                  quantity: stockTotal,
+                  status: status,
+                  imagePath: product['imagen_url'] as String?,
+                  onAddToCart: () {
+                    CartManager.instance.addToCart(
+                      product['id'] as int,
+                      product['nombre'] as String,
+                    );
+                    // Mensaje rapido
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '${product['nombre']} agregado al carrito',
+                        ),
+                        duration: const Duration(seconds: 2),
+                        action: SnackBarAction(
+                          label: 'Deshacer',
+                          textColor: AppTheme.accentBlue,
+                          onPressed: () {
+                            CartManager.instance.removeFromCart(
+                              product['id'] as int,
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  onConsume: () async {
+                    await _productRepo.consumeProductFefo(product['id'], 1);
+                    _loadProducts(); // Recarga la lista tras consumir
+                  },
+                );
+              }, childCount: products.length),
             );
           },
         ),
 
         // Espacio vacio para que la barra de navegacion no corte el ultimo elemento
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 80),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
     );
   }
