@@ -198,7 +198,8 @@ lib/
    - Se actualiza automáticamente `Producto.ultima_tienda_id = tienda_id`.
    - Permite consultar `SELECT DISTINCT Tienda.* FROM Tienda JOIN Historial_Compras ...` para el histórico global.
 4. **Alarmas Locales**:
-   - Campo booleano `alarma_activa` y hora de notificación programada con `flutter_local_notifications` para alertar el día del vencimiento.
+   - El campo booleano `alarma_activa` habilita una notificación local por cada lote activo, programada para las 9:00 a. m. (hora local) del mismo día de caducidad.
+   - Las notificaciones se solicitan al guardar un artículo o registrar una compra; se cancelan al agotarse/eliminar el lote y se reconcilian con SQLite al iniciar la aplicación.
 5. **Registro de consumo y agotamiento**:
    - Al consumir unidades, descontarlas de los lotes activos en orden FEFO dentro de una transacción.
    - Registrar la cantidad efectivamente descontada y el stock total restante en `Historial_Consumos`, dentro de la misma transacción que actualiza los lotes.

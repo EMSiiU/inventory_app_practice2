@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/notifications/expiration_notification_service.dart';
 import 'manage_categories_screen.dart';
 import 'manage_store_screen.dart';
 import 'manage_products_screen.dart';
@@ -77,6 +79,10 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
+          if (kDebugMode) ...[
+            const SizedBox(height: 12),
+            const _NotificationTestTile(),
+          ],
           const SizedBox(height: 16),
           const ManagementAnalyticsSection(),
         ],
@@ -114,6 +120,96 @@ class SettingsScreen extends StatelessWidget {
         color: Colors.grey,
         size: 20,
       ),
+    );
+  }
+}
+
+class _NotificationTestTile extends StatefulWidget {
+  const _NotificationTestTile();
+
+  @override
+  State<_NotificationTestTile> createState() => _NotificationTestTileState();
+}
+
+class _NotificationTestTileState extends State<_NotificationTestTile> {
+  bool _isScheduling = false;
+
+  Future<void> _scheduleTestNotification() async {
+    if (_isScheduling) return;
+    setState(() => _isScheduling = true);
+
+    try {
+      final notificationService = ExpirationNotificationService.instance;
+      final permissionGranted = await notificationService.requestPermission();
+      if (!permissionGranted) {
+        throw StateError(
+          'Permite las notificaciones de la aplicación en los ajustes '
+          'de Android para ejecutar la prueba.',
+        );
+      }
+
+      await notificationService.scheduleTestNotification();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Prueba programada: llegará en aproximadamente 1 minuto.',
+            ),
+          ),
+        );
+      }
+    } catch (error, stackTrace) {
+      debugPrint(
+        'No se pudo programar la notificación de prueba: '
+        '$error\n$stackTrace',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo programar la prueba: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isScheduling = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: _isScheduling ? null : _scheduleTestNotification,
+      tileColor: AppTheme.surfaceCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(CupertinoIcons.bell_fill, color: AppTheme.accentBlue),
+      ),
+      title: const Text(
+        'Probar alarma (1 minuto)',
+        style: TextStyle(
+          color: AppTheme.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: const Text(
+        'Solo disponible en esta compilación de depuración',
+        style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+      ),
+      trailing: _isScheduling
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(
+              CupertinoIcons.chevron_right,
+              color: Colors.grey,
+              size: 20,
+            ),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/notifications/expiration_notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 import '../../../data/models/category_model.dart';
@@ -35,6 +36,7 @@ class _NewItemScreenState extends State<NewItemScreen> {
   final _storeRepo = StoreRepository();
   final _historyRepo = PurchaseHistoryRepository();
   final _imagePicker = ImagePicker();
+  final _notificationService = ExpirationNotificationService.instance;
 
   XFile? _selectedImage;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 30));
@@ -80,7 +82,7 @@ class _NewItemScreenState extends State<NewItemScreen> {
           'Abarrotes',
           'Frutas y Verduras',
           'Latas',
-          'Otra'
+          'Otra',
         ];
 
         for (var name in defaultCategories) {
@@ -121,7 +123,7 @@ class _NewItemScreenState extends State<NewItemScreen> {
           'Costco',
           'Mercado Local',
           'Tienda 3B',
-          'Otra'
+          'Otra',
         ];
 
         for (var name in defaultStores) {
@@ -150,11 +152,24 @@ class _NewItemScreenState extends State<NewItemScreen> {
 
     String? persistedImagePath;
     var productSaved = false;
+    var notificationPermissionGranted = false;
     try {
       // final categoryId = await _categoryRepo.getOrCreateDefaultCategoryId();
       if (_selectedCategoryId == null) return;
       final categoryId = _selectedCategoryId!;
       persistedImagePath = await _persistSelectedImage();
+
+      if (_alarmActive && _notificationService.isSupported) {
+        try {
+          notificationPermissionGranted = await _notificationService
+              .requestPermission();
+        } catch (error, stackTrace) {
+          debugPrint(
+            'Error al solicitar permiso para alarmas locales: '
+            '$error\n$stackTrace',
+          );
+        }
+      }
 
       final newProduct = ProductModel(
         name: _nameController.text.trim(),
@@ -167,11 +182,12 @@ class _NewItemScreenState extends State<NewItemScreen> {
       );
 
       // Guardar el producto y su lote inicial
-      final productId = await _productRepo.insertProductWithInitialBatch(
+      final insertedProduct = await _productRepo.insertProductWithInitialBatch(
         product: newProduct,
         expirationDate: _selectedDate,
         quantity: int.parse(_quantityController.text.trim()),
       );
+      final productId = insertedProduct.productId;
       productSaved = true;
 
       // Guardar la compra en el historial
@@ -187,6 +203,39 @@ class _NewItemScreenState extends State<NewItemScreen> {
         );
       }
 
+      var notificationMessage = '';
+      if (_alarmActive && _notificationService.isSupported) {
+        if (!notificationPermissionGranted) {
+          notificationMessage =
+              'El artículo se guardó, pero no se activaron las notificaciones. '
+              'Puedes habilitarlas en los ajustes del dispositivo.';
+        } else {
+          try {
+            final scheduled = await _notificationService
+                .scheduleBatchExpiration(
+                  batchId: insertedProduct.batchId,
+                  productName: newProduct.name,
+                  expirationDate: _selectedDate,
+                );
+            if (!scheduled) {
+              notificationMessage =
+                  'El artículo se guardó, pero no se programó la alarma '
+                  'porque ya pasó las 9:00 a. m. del día de caducidad.';
+            }
+          } catch (error, stackTrace) {
+            debugPrint(
+              'Error al programar alarma del artículo: $error\n$stackTrace',
+            );
+            notificationMessage =
+                'El artículo se guardó, pero no se pudo programar su alarma.';
+          }
+        }
+      }
+
+      if (notificationMessage.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(notificationMessage)));
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (error, stackTrace) {
       debugPrint('Error al guardar artículo: $error\n$stackTrace');

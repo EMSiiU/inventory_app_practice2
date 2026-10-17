@@ -3,6 +3,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/notifications/expiration_notification_service.dart';
+
 import 'package:inventory_app_practice2/core/theme/app_theme.dart';
 
 import '../../../shared/widgets/custom_sliver_app_bar.dart';
@@ -75,6 +77,7 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   final ProductRepository _productRepo = ProductRepository();
+  final _notificationService = ExpirationNotificationService.instance;
   final TextEditingController _searchController = TextEditingController();
 
   // Future que cargará los datos
@@ -284,6 +287,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           product['id'] as int,
                           1,
                         );
+                        try {
+                          await _notificationService.synchronizeActiveBatches();
+                        } catch (error, stackTrace) {
+                          debugPrint(
+                            'Error al sincronizar alarmas tras consumir: '
+                            '$error\n$stackTrace',
+                          );
+                        }
                         _loadProducts();
                       },
                     );

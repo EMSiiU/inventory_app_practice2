@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+
 import '../../core/database/database_helper.dart';
 import '../models/product_batch_model.dart';
 import '../models/product_model.dart';
@@ -12,7 +13,7 @@ class ProductRepository {
     return await db.insert('Producto', product.toMap());
   }
 
-  Future<int> insertProductWithInitialBatch({
+  Future<({int productId, int batchId})> insertProductWithInitialBatch({
     required ProductModel product,
     required DateTime expirationDate,
     required int quantity,
@@ -27,8 +28,11 @@ class ProductRepository {
         quantity: quantity,
       );
 
-      await transaction.insert('Lote_Producto', initialBatch.toMap());
-      return productId;
+      final batchId = await transaction.insert(
+        'Lote_Producto',
+        initialBatch.toMap(),
+      );
+      return (productId: productId, batchId: batchId);
     });
   }
 
@@ -36,7 +40,7 @@ class ProductRepository {
   // Si el stock total es 0, se considera en estado "Agotado"
   Future<List<Map<String, dynamic>>> getProductsWithStock() async {
     final Database db = await _dbHelper.database;
-    
+
     final String query = '''
       SELECT p.*, 
             c.nombre as category_name,
@@ -114,7 +118,11 @@ class ProductRepository {
   Future<bool> deleteProduct(int id) async {
     final Database db = await _dbHelper.database;
     try {
-      final rowsAffected = await db.delete('Producto', where: 'id = ?', whereArgs: [id]);
+      final rowsAffected = await db.delete(
+        'Producto',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
       return rowsAffected > 0;
     } catch (e) {
       // Si el borrado es bloqueado por llaves foráneas (ej. Historial), retornamos false

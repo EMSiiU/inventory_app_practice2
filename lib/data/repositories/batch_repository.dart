@@ -1,6 +1,7 @@
 // Archivo: lib/data/repositories/batch_repository.dart
 
 import 'package:sqflite/sqflite.dart';
+
 import '../../core/database/database_helper.dart';
 import '../models/product_batch_model.dart';
 
@@ -14,7 +15,7 @@ class BatchRepository {
   }
 
   // Obtiene todos los lotes activos (cantidad > 0) de todos los productos
-  Future<List<ProductBatchModel>> getAllActiveBatches() async{
+  Future<List<ProductBatchModel>> getAllActiveBatches() async {
     final Database db = await _dbHelper.database;
     // final List<Map<String, dynamic>> maps = await db.query(
     //   'Lote_Producto',
@@ -27,11 +28,43 @@ class BatchRepository {
       WHERE l.cantidad > 0
     ''');
 
-    return List.generate(maps.length, (i) => ProductBatchModel.fromMap(maps[i]));
+    return List.generate(
+      maps.length,
+      (i) => ProductBatchModel.fromMap(maps[i]),
+    );
+  }
+
+  Future<List<ProductBatchModel>> getActiveAlarmBatches() async {
+    final Database db = await _dbHelper.database;
+    final maps = await db.rawQuery('''
+      SELECT l.*, p.nombre AS productName
+      FROM Lote_Producto l
+      INNER JOIN Producto p ON l.producto_id = p.id
+      WHERE l.cantidad > 0 AND p.alarma_activa = 1
+    ''');
+
+    return List.generate(
+      maps.length,
+      (i) => ProductBatchModel.fromMap(maps[i]),
+    );
+  }
+
+  Future<bool> isAlarmActiveForProduct(int productId) async {
+    final Database db = await _dbHelper.database;
+    final rows = await db.query(
+      'Producto',
+      columns: ['alarma_activa'],
+      where: 'id = ?',
+      whereArgs: [productId],
+      limit: 1,
+    );
+    return rows.isNotEmpty && rows.first['alarma_activa'] == 1;
   }
 
   // Obtiene todos los lotes activos (cantidad > 0) de un producto
-  Future<List<ProductBatchModel>> getActiveBatchesByProductId(int productId) async {
+  Future<List<ProductBatchModel>> getActiveBatchesByProductId(
+    int productId,
+  ) async {
     final Database db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       'Lote_Producto',
@@ -39,21 +72,29 @@ class BatchRepository {
       whereArgs: [productId],
       orderBy: 'fecha_caducidad ASC', // Ordena para visualizar FEFO
     );
-    
-    return List.generate(maps.length, (i) => ProductBatchModel.fromMap(maps[i]));
+
+    return List.generate(
+      maps.length,
+      (i) => ProductBatchModel.fromMap(maps[i]),
+    );
   }
 
   // Obtiene los lotes que caducan en una fecha específica (para el calendario de alertas)
-  Future<List<ProductBatchModel>> getBatchesExpiringOnDate(DateTime date) async {
+  Future<List<ProductBatchModel>> getBatchesExpiringOnDate(
+    DateTime date,
+  ) async {
     final Database db = await _dbHelper.database;
     final String dateString = date.toIso8601String().split('T').first;
-    
+
     final List<Map<String, dynamic>> maps = await db.query(
       'Lote_Producto',
       where: 'fecha_caducidad = ? AND cantidad > 0',
       whereArgs: [dateString],
     );
 
-    return List.generate(maps.length, (i) => ProductBatchModel.fromMap(maps[i]));
+    return List.generate(
+      maps.length,
+      (i) => ProductBatchModel.fromMap(maps[i]),
+    );
   }
 }
